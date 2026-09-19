@@ -936,6 +936,15 @@ Directory: `apps/web` and `apps/docs`. Turborepo's remote cache means an
 unchanged app is not rebuilt. Preview deployments get their own database
 branch so pull requests never touch production data.
 
+The click-through setup is [docs/deployment.md](docs/deployment.md). What the
+repository contributes: `apps/web/vercel.json` runs `drizzle-kit migrate`
+before `next build` on every deploy, against that environment's `DIRECT_URL`,
+so a schema change and the code that needs it ship together or not at all;
+`packages/env` defaults `BETTER_AUTH_URL` to the deployment's own URL on
+Vercel and exposes `deploymentOrigins()`, which both Better Auth's origin check
+and Next's `serverActions.allowedOrigins` read — one list, so the two cannot
+disagree. Production behind a custom domain sets `BETTER_AUTH_URL` explicitly.
+
 **Escape hatch:** if a client requires their own infrastructure,
 `turbo build --filter=web` produces a Next.js standalone output that
 containerizes with a ten-line Dockerfile and runs anywhere.
@@ -991,9 +1000,12 @@ Built so far: monorepo and tooling, `packages/env`, `packages/db` with
 migrations, `packages/auth`, `packages/ui` (Untitled UI base components, the
 theme, the Hugeicons adapter), and `apps/web` with the middleware chain, the
 `[locale]` segment, sign-in and sign-up on the shared components; the CI
-pipeline with the transactional Vitest harness, and Playwright on
-`deployment_status`. Still outstanding in v0.1: Google sign-in, Sentry, and
-the retention job for auth events.
+pipeline with the transactional Vitest harness, Playwright on
+`deployment_status`, and the Vercel deployment (migrations as a deploy step,
+trusted origins, the setup checklist). Still outstanding in v0.1: Google
+sign-in, Sentry, the retention job for auth events, and enabling Row Level
+Security in the migrations (§4 states it as the baseline; the schema does not
+yet call `.enableRLS()`).
 
 **v0.2 — the reference feature**
 Full `projects` CRUD end to end, shared data table, seed data, unit + E2E

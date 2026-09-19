@@ -15,11 +15,18 @@ jobs:
   playwright:
     name: Playwright against the preview
     # Only the web app's preview; production and the docs site are not
-    # targets. Vercel names the environment "Preview" or "Preview – <project>".
+    # targets. Vercel names the GitHub environment "Preview" while one project
+    # is linked to the repository and "Preview – <project>" once there are
+    # several. The project name is the repository variable VERCEL_WEB_PROJECT
+    # (Settings → Secrets and variables → Actions → Variables), falling back
+    # to the name docs/deployment.md tells you to use.
     if: >-
       github.event.deployment_status.state == 'success' &&
       startsWith(github.event.deployment.environment, 'Preview') &&
-      !contains(github.event.deployment.environment, 'docs')
+      (
+        github.event.deployment.environment == 'Preview' ||
+        endsWith(github.event.deployment.environment, vars.VERCEL_WEB_PROJECT || 'scaffold-web')
+      )
     runs-on: ubuntu-latest
     timeout-minutes: 20
 

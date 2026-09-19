@@ -12,7 +12,16 @@ loadEnvConfig(fileURLToPath(new URL("../..", import.meta.url)));
 
 const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 
-const nextConfig: NextConfig = {
+// Exported as an async function rather than an object so @repo/env can be
+// imported after loadEnvConfig has run — a static import would be hoisted
+// above it, and next.config cannot use top-level await.
+export default async function config(): Promise<NextConfig> {
+  const { deploymentOrigins } = await import("@repo/env");
+
+  return withNextIntl(nextConfig(deploymentOrigins()));
+}
+
+const nextConfig = (origins: string[]): NextConfig => ({
   // Nothing is cached unless it says so. Reads opt in with "use cache" and a
   // tag; everything else renders per request. See ARCHITECTURE.md §6.
   cacheComponents: true,
@@ -26,12 +35,14 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["postgres"],
 
   experimental: {
-    // Behind a custom domain or a proxy this has to list the real origin, or
-    // the Server Action origin check either rejects every submission or, if
-    // loosened instead, stops being a CSRF defense. Empty is correct only while
-    // the app is served from the origin it thinks it is.
-    serverActions: { allowedOrigins: [] },
+    // Next checks a Server Action's Origin against the request Host, and
+    // otherwise against this list. Behind a custom domain or a proxy the two
+    // differ, and without the real origin here every submission is rejected —
+    // or, loosened instead, the check stops being a CSRF defense. The list is
+    // the one Better Auth trusts too: the production domain (BETTER_AUTH_URL)
+    // plus whatever Vercel serves this deployment on.
+    serverActions: {
+      allowedOrigins: origins.map((origin) => new URL(origin).host),
+    },
   },
-};
-
-export default withNextIntl(nextConfig);
+});

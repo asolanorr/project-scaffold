@@ -1,0 +1,6 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "pnpm --filter @repo/db exec drizzle-kit migrate && pnpm turbo run build --filter=@repo/web",
+  "ignoreCommand": "npx turbo-ignore"
+}

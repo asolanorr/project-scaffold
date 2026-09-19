@@ -167,8 +167,10 @@ deployment with a real database. `pnpm test:e2e` with no `BASE_URL` starts
 ready rather than racing a deployment that may not exist yet. It needs one
 repository secret, `VERCEL_AUTOMATION_BYPASS_SECRET`, copied from the Vercel
 project's Deployment Protection settings, so the browser can get past the
-preview password. The job runs for environments named `Preview…` and skips
-anything with `docs` in the name.
+preview password. It runs for the web project's preview deployments only —
+`Preview` while one Vercel project is linked, `Preview – scaffold-web` once
+there are several; a different project name goes in the repository variable
+`VERCEL_WEB_PROJECT`.
 
 Turborepo runs tasks in strict environment mode: a variable reaches a task
 only if `turbo.json` lists it. Adding a variable means adding it to
@@ -176,10 +178,12 @@ only if `turbo.json` lists it. Adding a variable means adding it to
 
 ## Deployment
 
-Vercel, two projects on this repository with Root Directory `apps/web` and
-(later) `apps/docs`. Preview deployments get their own database branch and
-synthetic data only. See ARCHITECTURE.md §12 for the cost ladder and the
-container escape hatch.
+Vercel + Supabase. [docs/deployment.md](docs/deployment.md) is the checklist:
+Supabase project and branching, the Vercel project (`apps/web` as Root
+Directory), environment variables per environment, the automation bypass
+secret for E2E, and what to verify. Migrations run as part of every deploy;
+origins are trusted from Vercel's system variables. See ARCHITECTURE.md §12
+for the cost ladder and the container escape hatch.
 
 ## Conventions in brief
 

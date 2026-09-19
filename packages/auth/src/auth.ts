@@ -1,5 +1,5 @@
 import { db } from "@repo/db";
-import { env } from "@repo/env";
+import { deploymentOrigins, env } from "@repo/env";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
@@ -17,6 +17,10 @@ export const auth = betterAuth({
   }),
   secret: env.BETTER_AUTH_SECRET,
   baseURL: env.BETTER_AUTH_URL,
+  // A preview is reachable on its unique deployment URL and on its branch
+  // alias; production on its domain and its *.vercel.app name. The origin
+  // check accepts a request from any of them and nothing else.
+  trustedOrigins: deploymentOrigins(),
 
   emailAndPassword: {
     enabled: true,

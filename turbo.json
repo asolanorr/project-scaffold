@@ -9,7 +9,11 @@
     "BETTER_AUTH_URL",
     "CSP_REPORT_ONLY",
     "CI",
-    "BASE_URL"
+    "BASE_URL",
+    "VERCEL_ENV",
+    "VERCEL_URL",
+    "VERCEL_BRANCH_URL",
+    "VERCEL_PROJECT_PRODUCTION_URL"
   ],
   "tasks": {
     "build": {

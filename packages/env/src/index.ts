@@ -54,7 +54,17 @@ export const env = createEnv({
     // Public origin the app is served from. Better Auth builds callback URLs
     // from it and validates the request origin against it, so a wrong value
     // fails closed rather than silently allowing a cross-origin sign-in.
+    // On Vercel it defaults to the deployment's own URL (see runtimeEnv), so
+    // previews need nothing set; production sets it to the real domain.
     BETTER_AUTH_URL: z.url(),
+
+    // Vercel's system variables, present only there. Read so the origins a
+    // deployment answers on — the unique deployment URL, the branch alias,
+    // the production domain — can be trusted without listing them by hand.
+    VERCEL_ENV: z.enum(["production", "preview", "development"]).optional(),
+    VERCEL_URL: z.string().optional(),
+    VERCEL_BRANCH_URL: z.string().optional(),
+    VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
 
     // CSP_REPORT_ONLY is deliberately not here — it is read by the middleware,
     // which runs on the edge and must not import this schema. See ./edge.
@@ -65,8 +75,46 @@ export const env = createEnv({
     DATABASE_URL: process.env.DATABASE_URL,
     DIRECT_URL: process.env.DIRECT_URL,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
-    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL,
+    // `||`, not `??`: an empty value in a dashboard means "not set" too.
+    BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || vercelOrigin(),
+    VERCEL_ENV: process.env.VERCEL_ENV,
+    VERCEL_URL: process.env.VERCEL_URL,
+    VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
+    VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
   },
   emptyStringAsUndefined: true,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });
+
+/**
+ * The origin Vercel serves this deployment from, when running there.
+ *
+ * Production: the project's production domain. Preview: the branch alias,
+ * which stays the same across pushes to the branch, so a session survives a
+ * redeploy. Only a default — an explicit BETTER_AUTH_URL wins, and a custom
+ * production domain must set it, because Vercel reports the `*.vercel.app`
+ * name there, not the domain in front of it.
+ */
+function vercelOrigin(): string | undefined {
+  const host =
+    process.env.VERCEL_ENV === "production"
+      ? process.env.VERCEL_PROJECT_PRODUCTION_URL
+      : process.env.VERCEL_BRANCH_URL || process.env.VERCEL_URL;
+  return host ? `https://${host}` : undefined;
+}
+
+/**
+ * Every origin this deployment may legitimately be reached on.
+ *
+ * On Vercel a preview answers on its unique deployment URL and on the branch
+ * alias; production on its domain and on the `*.vercel.app` name. A request
+ * arriving on any of them is a first-party request. Better Auth's origin check
+ * and Next's Server Action origin check both take this list — the same list,
+ * so the two cannot drift.
+ */
+export function deploymentOrigins(): string[] {
+  const hosts = [env.VERCEL_URL, env.VERCEL_BRANCH_URL, env.VERCEL_PROJECT_PRODUCTION_URL];
+  const origins = new Set<string>([env.BETTER_AUTH_URL]);
+  for (const host of hosts) if (host) origins.add(`https://${host}`);
+  return [...origins];
+}

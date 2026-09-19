@@ -283,6 +283,19 @@ and is worse than what is there now.
 
 ---
 
+## Email
+
+- **`sendEmail()` from `@repo/email` is the only way mail leaves the app**, and
+  it is never awaited in a request: wrap it in `deferred()` (packages/auth) so
+  it runs after the response.
+- **Locale rule:** mail the user asked for in a request uses the request's
+  locale (the `x-app-locale` header `callAuthEndpoint` sends); mail they did
+  not ask for uses the account's `users.locale`.
+- **Endpoints that make the app send mail get a tighter rate limit**, not an
+  exemption. They are a way to spam third parties.
+- **Tests install the fake transport** from `@repo/email/testing` and assert
+  on the payload. Nothing reaches Resend from a test.
+
 ## What not to do
 
 Common mistakes that look reasonable but violate the architecture:

@@ -25,8 +25,9 @@ pnpm db:migrate              # apply the SQL migrations
 pnpm dev                     # http://localhost:3000
 ```
 
-Sign up at `/sign-up`, land on `/dashboard`. `/es/...` serves the same pages
-in Spanish.
+Sign up at `/sign-up`. Verification is required: with no `RESEND_API_KEY`
+the email is printed to the terminal running `pnpm dev` — open the link in it
+to land on `/dashboard`. `/es/...` serves the same pages in Spanish.
 
 ### Database option A — Supabase local (matches production)
 
@@ -103,6 +104,7 @@ apps/docs         Fumadocs documentation site
 packages/db       Drizzle schema, client, migrations, test harness
 packages/auth     Better Auth server config and session helpers
 packages/ui       Untitled UI components, theme tokens, icon adapter
+packages/email    Resend client, React Email templates, sendEmail()
 packages/env      Validated environment variables — the only reader of process.env
 packages/config   Shared tsconfig and Biome config
 e2e/              Playwright specs, run against a deployment
@@ -125,6 +127,9 @@ sync when adding a variable.
 | `BETTER_AUTH_SECRET` | Session signing key, ≥ 32 characters |
 | `BETTER_AUTH_URL` | Public origin the app is served from |
 | `CSP_REPORT_ONLY` | `true` downgrades the CSP to report-only; off by default |
+| `RESEND_API_KEY` | Resend key; unset locally → mail is printed to the server console |
+| `EMAIL_FROM` | From header, on a domain verified in Resend |
+| `REQUIRE_EMAIL_VERIFICATION` | `false` only for previews without a mail provider |
 
 ## Testing
 

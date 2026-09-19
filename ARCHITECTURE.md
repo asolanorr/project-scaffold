@@ -115,6 +115,7 @@ scaffold/
 │   │   └── drizzle.config.ts
 │   ├── auth/                     # Better Auth server config + client helpers
 │   ├── ui/                       # Untitled UI components, icons, Tailwind preset
+│   ├── email/                    # Resend transport, React Email templates, sendEmail()
 │   ├── env/                      # typed, validated environment variables
 │   └── config/                   # tsconfig, biome, tailwind base configs
 │
@@ -127,11 +128,12 @@ scaffold/
 ### Dependency rules (enforced by lint)
 
 ```
-apps/web       →  packages/db, auth, ui, env, config
-packages/auth  →  packages/db, env, config
-packages/db    →  packages/env, config
-packages/ui    →  packages/config
-packages/env   →  (nothing internal)
+apps/web        →  packages/db, auth, ui, env, config
+packages/auth   →  packages/db, email, env, config
+packages/email  →  packages/env, config
+packages/db     →  packages/env, config
+packages/ui     →  packages/config
+packages/env    →  (nothing internal)
 ```
 
 No package may import from `apps/`. No circular dependencies. `packages/ui`
@@ -292,15 +294,21 @@ export const auth = betterAuth({
   database: drizzleAdapter(db, { provider: "pg", usePlural: true }),
   emailAndPassword: {
     enabled: true,
-    // off by default so a fresh clone can sign up before email is configured.
-    // turn on in the same change that adds the Resend key.
-    requireEmailVerification: false,
+    // verification, reset, the password-changed notice, token lifetimes:
+    // all in ./email-flows, with the tests that drive them
+    ...passwordOptions,
   },
+  emailVerification: emailVerificationOptions,
+  user: { additionalFields: userLocaleField },
   // storage must be "database": the default is per-instance memory, which on
-  // serverless means no effective limit at all.
-  rateLimit: { enabled: true, window: 60, max: 20, storage: "database" },
+  // serverless means no effective limit at all. customRules: the endpoints
+  // that make the app send mail to any address get a tighter limit.
+  rateLimit: { enabled: true, window: 60, max: 20, storage: "database", customRules: emailRateLimitRules },
   session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
-  hooks: { after: recordAuthEvent },
+  hooks: {
+    before: singleUseVerificationTokens + beforePasswordReset,
+    after: recordAuthEvent + afterPasswordChange,
+  },
   // must stay last: makes getSession() behave inside a Server Component.
   plugins: [nextCookies()],
 });
@@ -310,6 +318,24 @@ export const auth = betterAuth({
 model name is pluralised on top of itself and the adapter looks for
 `rateLimitss` — which typechecks, and then throws the first time a request is
 actually rate limited. There is a test pinning this.
+
+**Email verification is required** (`REQUIRE_EMAIL_VERIFICATION`, default
+true; `false` is the escape hatch for a preview without a mail provider). A
+sign-up creates the account and sends a link; no session is issued until the
+link is used. The link is a 24-hour JWT made single-use by a tombstone — the
+token's hash, reserved in the verifications table the first time it is seen
+(`reserveVerificationValue`, first writer wins on the primary key). A reset
+link is a 1-hour token Better Auth stores and consumes atomically; before it
+is consumed, every other outstanding reset token for the same user is
+deleted, and a signed-in password change deletes them all as well. Both
+changes send a password-changed notice to the address on file, in the
+account's locale (`users.locale`, set at sign-up) rather than the request's —
+a stranger resetting the password does not pick the language the owner is
+warned in. `/send-verification-email` and `/request-password-reset` have
+their own per-IP rate limit: they make the app send mail to any address, which
+is a way to spam third parties, and the general auth limit is sized for
+someone using the app. Sends are deferred past the response with `after()`;
+see `packages/email`.
 
 **Social providers are not wired yet.** Adding Google means adding
 `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `packages/env`, which makes
@@ -1030,6 +1056,14 @@ describe the intended shape and are marked as such until v0.4 lands.
 **v0.4 — optional modules**
 Payments (`PaymentProvider` interface with a Tilopay or Stripe adapter),
 transactional email, background jobs, file uploads, audit log, admin panel.
+
+Built so far: transactional email — `packages/email` (Resend behind one
+`sendEmail()`, React Email templates for verification, reset and
+password-changed, both locales), `users.locale` set at sign-up, verification
+required with 24-hour single-use links, the reset flow with 1-hour single-use
+tokens invalidated on use and on any password change, a separate rate limit
+on the endpoints that make the app send mail, sends deferred past the
+response with `after()`.
 
 **v0.5 — automation**
 `create-app` CLI, Renovate for dependency updates, release automation.

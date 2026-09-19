@@ -47,8 +47,9 @@ the rate limiter and the origin check live in the router:
   attributes, the auth event log — all configured in `packages/auth`, all
   tested there. Supabase Auth would have handled some of this for us; the
   trade is control and testability for convenience.
-- **Email verification is off until there is a transport** (ADR-adjacent:
-  see the email recipe). Supabase Auth would send the emails itself.
+- **We send the mail.** Verification and reset links go through
+  `packages/email`; Supabase Auth would have sent them itself. The trade is
+  owning the templates, the locales and the token lifetimes.
 - **Social login is plugins**, configured in the same file. Google is on the
   roadmap; nothing structural changes when it lands.
 - **The `supabase-js` client is not used for anything**, which is what makes

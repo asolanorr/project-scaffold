@@ -42,6 +42,7 @@ emails, generating an export — the plan is:
 
 ## What to do in the meantime
 
-Do the work inline in the action if it takes under a second; otherwise
+Email already has its own answer: `sendEmail()` deferred with `after()` (see
+[Add an email](./add-an-email)). For anything else, do the work inline in the action if it takes under a second; otherwise
 record the intent as a row and leave a `TODO(jobs)` pointing here. Do not add
 a queue library for one job.

@@ -40,6 +40,17 @@ What the code already does for you, so you do not have to:
       each table → Enable RLS**. The app connects as `postgres`, which
       bypasses RLS on Supabase, so this changes nothing for the app.
 
+## 1b. Resend — transactional email
+
+- [ ] Create an account at resend.com, **Domains → Add domain**, add the DNS
+      records it shows (SPF, DKIM), wait for *Verified*.
+- [ ] **API Keys → Create** with *Sending access*; this is `RESEND_API_KEY`.
+- [ ] Decide the From address on that domain; this is `EMAIL_FROM`, formatted
+      `Scaffold <hello@yourdomain.com>`.
+- [ ] Previews: either the same key (real mail from previews — fine for a
+      team, not for demo data with strangers' addresses) or none, with
+      `REQUIRE_EMAIL_VERIFICATION=false` so sign-up works without an inbox.
+
 ## 2. Vercel — the web project
 
 - [ ] **Add New → Project → Import** the GitHub repository.
@@ -60,6 +71,9 @@ What the code already does for you, so you do not have to:
   | `DIRECT_URL` | ✓ | ✓ (if not using branching) | direct URI from step 1 |
   | `BETTER_AUTH_SECRET` | ✓ | ✓ | `openssl rand -base64 32`, a **different** value per environment |
   | `BETTER_AUTH_URL` | ✓ | — | `https://<your domain>`; leave unset for previews |
+  | `RESEND_API_KEY` | ✓ | optional | from resend.com → API Keys; production refuses to boot without it |
+  | `EMAIL_FROM` | ✓ | optional | `Name <address@domain>` on a domain verified in Resend |
+  | `REQUIRE_EMAIL_VERIFICATION` | — | `false` | leave unset (true) in production; `false` lets previews and E2E sign in without an inbox |
   | `NODE_ENV` | — | — | do not set; Vercel does |
 
   Two secrets, on purpose: a preview must not be able to mint a production
@@ -129,3 +143,5 @@ Repository → Settings → Secrets and variables → Actions.
 | E2E workflow never runs | Vercel project name does not match | set the `VERCEL_WEB_PROJECT` variable, or check *Deployment status events* is on |
 | E2E gets a Vercel login page | bypass secret missing or rotated | update `VERCEL_AUTOMATION_BYPASS_SECRET` |
 | Preview writes appear in production | previews share production's database | enable branching, or give previews their own project (step 1) |
+| Sign-up says "check your inbox" but nothing arrives | no `RESEND_API_KEY`, or the From domain is not verified | set the key; in Resend, Domains must show *Verified*; without a key the mail is in the server log |
+| Production build fails: `RESEND_API_KEY is required` | the key is missing for the Production environment | add it (section 1b) |

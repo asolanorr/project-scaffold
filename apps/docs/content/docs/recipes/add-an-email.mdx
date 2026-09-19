@@ -1,37 +1,71 @@
 ---
 title: Add an email
-description: Planned for v0.4 — the shape it will take, so a feature written now leaves room for it.
+description: A new transactional message — template, both locales, a test, and sending it without making the user wait.
 ---
 
-<Callout type="warn" title="Not built yet">
-  Transactional email (Resend + React Email) is on the roadmap for v0.4.
-  Nothing in the repository sends email today; this page records the intended
-  shape so nothing written now has to be undone. It will be replaced by real
-  code samples when the module lands.
-</Callout>
+About 30 minutes. `packages/email` owns everything about mail; a feature
+calls one function.
 
-## The shape
+## The one entry point
 
-- **A package, `packages/email`**, owning the Resend client, the templates
-  (React Email components) and one function per message:
-  `sendVerificationEmail({ to, url, locale })`. The app never imports `resend`
-  directly — the same single indirection `@repo/auth` gives auth.
-- **Templates are translated** with the same message catalogs, keyed under an
-  `email.*` namespace. Subjects too; the i18n rule does not stop at the
-  browser.
-- **`RESEND_API_KEY` and `EMAIL_FROM`** go into `packages/env` and
-  `.env.example` in the same change. Previews send nothing: the client is a
-  no-op logger when the key is unset in a non-production environment.
-- **Sending is a side effect of an action**, after step 4 (execute) and before
-  step 6 (respond). It is rate limited on its own — an action that sends mail
-  is a way to make the app send mail, and Better Auth's limiter does not
-  cover it.
-- **Sign-up verification** is the first consumer: `requireEmailVerification`
-  in `packages/auth/src/auth.ts` is off today precisely because there is no
-  transport, and turns on in the same pull request that adds one.
+<include lang="ts" meta='title="packages/email/src/index.ts"'>../../../../../packages/email/src/index.ts</include>
 
-## What to do in the meantime
+Nothing else imports `resend`. The transport behind `sendEmail` is Resend
+when `RESEND_API_KEY` is set, the console when it is not (each message is
+printed with its links — how a local sign-up gets verified), and a fake in
+tests.
 
-If a feature needs to notify someone now, record the intent — a row in a
-`notifications` table with a `sentAt` of `null` — rather than reaching for a
-mail library ad hoc. The email module will drain that table.
+## 1. Strings, both locales
+
+`packages/email/src/messages.ts`. The catalog is typed so `es` cannot miss a
+key `en` has. Add a section for the new message:
+
+<include lang="ts" meta='title="packages/email/src/messages.ts"'>../../../../../packages/email/src/messages.ts</include>
+
+## 2. The template
+
+`packages/email/src/templates/<name>.tsx`, on the shared `Layout`. Email
+clients ignore stylesheets, so the layout inlines a handful of literal values
+that match the design tokens; the design system's classes cannot be used here.
+
+<include lang="tsx" meta='title="packages/email/src/templates/password-reset.tsx"'>../../../../../packages/email/src/templates/password-reset.tsx</include>
+
+Register it in the `templates` table in `index.ts`; `sendEmail` then accepts
+`template: "<name>"` with typed props.
+
+## 3. Send it — after the response
+
+A send is a network call to a provider; the user should not wait for it.
+`deferred()` schedules the work with Next's `after()`, which keeps the
+function alive until it settles on serverless:
+
+<include lang="ts" meta='title="packages/auth/src/defer.ts"'>../../../../../packages/auth/src/defer.ts</include>
+
+Which locale? The rule: mail the user asked for in a request (a verification
+link, a reset link) is written in the request's locale; mail they did not
+ask for (a password-changed notice) in the account's stored `users.locale`.
+The auth flows show both:
+
+<include lang="ts" meta='title="packages/auth/src/email-flows.ts"'>../../../../../packages/auth/src/email-flows.ts</include>
+
+## 4. Test it against the fake transport
+
+Never the network. `@repo/email/testing` exports a transport that records
+payloads:
+
+<include lang="ts" meta='title="packages/email/src/transports/fake.ts"'>../../../../../packages/email/src/transports/fake.ts</include>
+
+The email package's own tests assert on subject, recipient and that every
+link is in the plain-text body; the auth package's tests drive Better Auth's
+HTTP handler with the fake installed and assert on what was sent, when, and
+in which language:
+
+<include lang="ts" meta='title="packages/email/src/__tests__/send-email.test.ts"'>../../../../../packages/email/src/\_\_tests\_\_/send-email.test.ts</include>
+
+## What not to do
+
+- Do not `await sendEmail()` inside an action or a Better Auth callback.
+- Do not read `users.locale` for mail the user just asked for from a page in
+  another language — the header the app sends is what they are looking at.
+- Do not add a rate limit exemption for an endpoint that sends mail. Those
+  endpoints have a *tighter* limit than the rest, on purpose.

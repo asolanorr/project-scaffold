@@ -66,6 +66,19 @@ export const env = createEnv({
     VERCEL_BRANCH_URL: z.string().optional(),
     VERCEL_PROJECT_PRODUCTION_URL: z.string().optional(),
 
+    // Transactional email. Without a key nothing is sent: in development the
+    // console transport prints each message (with its links) instead, which is
+    // how a local sign-up gets verified. Production must have a key — see
+    // the refinement below.
+    RESEND_API_KEY: z.string().min(1).optional(),
+    // The From header, RFC 5322: `Name <address@verified-domain>`. The domain
+    // has to be verified in Resend or every send is rejected.
+    EMAIL_FROM: z.string().min(3).default("Scaffold <onboarding@resend.dev>"),
+    // Sign-up requires a verified address before a session is issued. Off is a
+    // documented escape hatch for previews and demos without a mail provider;
+    // never off in production.
+    REQUIRE_EMAIL_VERIFICATION: z.stringbool().default(true),
+
     // CSP_REPORT_ONLY is deliberately not here — it is read by the middleware,
     // which runs on the edge and must not import this schema. See ./edge.
   },
@@ -81,10 +94,19 @@ export const env = createEnv({
     VERCEL_URL: process.env.VERCEL_URL,
     VERCEL_BRANCH_URL: process.env.VERCEL_BRANCH_URL,
     VERCEL_PROJECT_PRODUCTION_URL: process.env.VERCEL_PROJECT_PRODUCTION_URL,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    EMAIL_FROM: process.env.EMAIL_FROM,
+    REQUIRE_EMAIL_VERIFICATION: process.env.REQUIRE_EMAIL_VERIFICATION,
   },
   emptyStringAsUndefined: true,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
 });
+
+// Production without a mail provider would accept sign-ups nobody can ever
+// verify. Refuse to boot instead; the message names the variable.
+if (env.VERCEL_ENV === "production" && !env.RESEND_API_KEY && !process.env.SKIP_ENV_VALIDATION) {
+  throw new Error("RESEND_API_KEY is required in production: sign-up sends verification email.");
+}
 
 /**
  * The origin Vercel serves this deployment from, when running there.

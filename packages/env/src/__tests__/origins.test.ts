@@ -16,6 +16,7 @@ async function load(overrides: Record<string, string | undefined>) {
     "VERCEL_URL",
     "VERCEL_BRANCH_URL",
     "VERCEL_PROJECT_PRODUCTION_URL",
+    "RESEND_API_KEY",
   ]) {
     vi.stubEnv(key, "");
   }
@@ -49,6 +50,7 @@ describe("BETTER_AUTH_URL on Vercel", () => {
       VERCEL_ENV: "production",
       VERCEL_URL: "web-abc123-team.vercel.app",
       VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
+      RESEND_API_KEY: "re_test",
     });
 
     expect(env.BETTER_AUTH_URL).toBe("https://web.vercel.app");
@@ -59,6 +61,7 @@ describe("BETTER_AUTH_URL on Vercel", () => {
       BETTER_AUTH_URL: "https://app.example.com",
       VERCEL_ENV: "production",
       VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
+      RESEND_API_KEY: "re_test",
     });
 
     expect(env.BETTER_AUTH_URL).toBe("https://app.example.com");
@@ -71,6 +74,21 @@ describe("BETTER_AUTH_URL on Vercel", () => {
   });
 });
 
+describe("RESEND_API_KEY", () => {
+  it("is required in production, because sign-up sends mail", async () => {
+    await expect(
+      load({ VERCEL_ENV: "production", VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app" }),
+    ).rejects.toThrow("RESEND_API_KEY is required in production");
+  });
+
+  it("is optional everywhere else", async () => {
+    const { env } = await load({ VERCEL_ENV: "preview", VERCEL_URL: "web-abc.vercel.app" });
+
+    expect(env.RESEND_API_KEY).toBeUndefined();
+    expect(env.REQUIRE_EMAIL_VERIFICATION).toBe(true);
+  });
+});
+
 describe("deploymentOrigins", () => {
   it("lists the explicit origin plus every Vercel host, once each", async () => {
     const { deploymentOrigins } = await load({
@@ -78,6 +96,7 @@ describe("deploymentOrigins", () => {
       VERCEL_ENV: "production",
       VERCEL_URL: "web-abc123-team.vercel.app",
       VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
+      RESEND_API_KEY: "re_test",
     });
 
     expect(deploymentOrigins()).toEqual([

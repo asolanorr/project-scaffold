@@ -1,0 +1,32 @@
+{
+  "name": "@repo/email",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@react-email/components": "1.0.12",
+    "@react-email/render": "2.1.0",
+    "@repo/env": "workspace:*",
+    "resend": "6.28.1"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "@types/node": "24.13.4",
+    "@types/react": "19.3.0",
+    "react": "19.3.0",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  },
+  "peerDependencies": {
+    "react": ">=19.0.0"
+  }
+}

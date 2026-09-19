@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
 import { resolveLocale } from "@/lib/locale";
+import { FORGOT_PASSWORD_PATH } from "@/lib/routes";
 
 export default async function SignInPage({
   params,
@@ -27,6 +28,12 @@ export default async function SignInPage({
       <Suspense fallback={<SignInForm />}>
         <SignInForm searchParams={searchParams} />
       </Suspense>
+
+      <p className="text-center text-sm text-tertiary">
+        <Button color="link-gray" size="md" href={FORGOT_PASSWORD_PATH}>
+          {t("forgotPassword")}
+        </Button>
+      </p>
 
       <p className="text-center text-sm text-tertiary">
         {t("noAccount")}{" "}

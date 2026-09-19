@@ -9,6 +9,7 @@ import {
   PROTECTED_PREFIXES,
   RETURN_TO_PARAM,
   SIGN_IN_PATH,
+  STALE_SESSION_PARAM,
 } from "@/lib/routes";
 import {
   applySecurityHeaders,
@@ -100,7 +101,11 @@ function applyAuthRedirect(request: NextRequest): NextResponse | null {
     return NextResponse.redirect(url);
   }
 
-  if (isSignedIn && matchesPrefix(pathname, AUTH_PREFIXES)) {
+  // A stale cookie — see STALE_SESSION_PARAM — looks signed in from here and
+  // is not. The sign-in page has to be reachable to replace it.
+  const staleCookie = request.nextUrl.searchParams.has(STALE_SESSION_PARAM);
+
+  if (isSignedIn && !staleCookie && matchesPrefix(pathname, AUTH_PREFIXES)) {
     const url = request.nextUrl.clone();
     url.pathname = localizedPath(locale, AFTER_SIGN_IN_PATH);
     url.search = "";

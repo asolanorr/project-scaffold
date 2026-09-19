@@ -12,6 +12,7 @@ export type FormFieldProps = {
   autoComplete: string;
   required?: boolean;
   minLength?: number;
+  defaultValue?: string;
   /** Message keys from the action, not sentences. */
   errors: string[] | undefined;
 };
@@ -33,6 +34,7 @@ export function FormField({
   autoComplete,
   required,
   minLength,
+  defaultValue,
   errors,
 }: FormFieldProps) {
   const t = useTranslations("auth.errors");
@@ -46,6 +48,7 @@ export function FormField({
       label={label}
       autoComplete={autoComplete}
       minLength={minLength}
+      defaultValue={defaultValue}
       isRequired={required}
       // Every auth field is required, so the asterisk would say nothing.
       hideRequiredIndicator

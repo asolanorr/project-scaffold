@@ -32,7 +32,8 @@
       "subtitle": "Welcome back.",
       "submit": "Sign in",
       "noAccount": "Don't have an account?",
-      "createOne": "Create one"
+      "createOne": "Create one",
+      "forgotPassword": "Forgot your password?"
     },
     "signUp": {
       "title": "Create an account",
@@ -48,7 +49,35 @@
       "unexpected": "Something went wrong. Try again.",
       "emailInvalid": "Enter a valid email address.",
       "passwordTooShort": "Use at least {min} characters.",
-      "nameRequired": "Enter your name."
+      "nameRequired": "Enter your name.",
+      "invalidToken": "That link is no longer valid. Request a new one.",
+      "verificationFailed": "That verification link has expired or was already used. Sign in to receive a new one."
+    },
+    "checkEmail": {
+      "title": "Check your inbox",
+      "subtitle": "We sent a verification link to {email}. It is valid for 24 hours.",
+      "subtitleNoEmail": "We sent you a verification link. It is valid for 24 hours.",
+      "resend": "Send the link again",
+      "resent": "A new link is on its way.",
+      "backToSignIn": "Back to sign in"
+    },
+    "forgotPassword": {
+      "title": "Forgot your password?",
+      "subtitle": "Enter your email and we will send you a link to choose a new one.",
+      "submit": "Send reset link",
+      "sentTitle": "Check your inbox",
+      "sent": "If an account exists for {email}, a reset link is on its way. It is valid for 1 hour.",
+      "backToSignIn": "Back to sign in"
+    },
+    "resetPassword": {
+      "title": "Choose a new password",
+      "subtitle": "At least {min} characters. Every other session will be signed out.",
+      "newPassword": "New password",
+      "submit": "Set new password",
+      "doneTitle": "Password updated",
+      "done": "Your password was changed. Sign in with the new one.",
+      "missingToken": "This link is incomplete. Request a new one from the forgot-password page.",
+      "requestNew": "Request a new link"
     }
   },
   "dashboard": {

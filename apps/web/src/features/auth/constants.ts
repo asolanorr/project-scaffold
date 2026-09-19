@@ -25,6 +25,7 @@ export const FORM_ERROR_KEYS = [
   "invalidCredentials",
   "emailTaken",
   "tooManyRequests",
+  "invalidToken",
   "unexpected",
 ] as const;
 

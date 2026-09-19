@@ -17,6 +17,15 @@ export const signUpSchema = z.object({
   password,
 });
 
+/** The forgot-password and resend-verification forms: an address, nothing else. */
+export const emailOnlySchema = z.object({ email });
+
+/** The reset form: the token from the link plus the new password. */
+export const resetPasswordSchema = z.object({
+  token: z.string({ error: "invalidToken" }).min(1, { error: "invalidToken" }),
+  password,
+});
+
 export type SignInInput = z.infer<typeof signInSchema>;
 export type SignUpInput = z.infer<typeof signUpSchema>;
 

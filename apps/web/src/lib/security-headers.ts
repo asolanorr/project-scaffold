@@ -14,21 +14,35 @@ export function createNonce(): string {
 }
 
 /**
- * React's shell-time marker, verbatim. Fizz writes it as an inline script at
- * the end of the prerendered shell (`shellTimeRuntimeScript` in
- * react-dom-server), and a prerendered shell has no request and so no nonce.
- * It only records when the shell painted, for Suspense reveal throttling;
- * blocked, React falls back to revealing on the next frame.
+ * React's two shell-time inline scripts, verbatim, and their hashes.
+ *
+ * Fizz writes these into the prerendered shell — which has no request and so
+ * no nonce. The first records when the shell painted, for Suspense reveal
+ * throttling; blocked, React reveals on the next frame instead. The second is
+ * the form-replaying runtime, emitted when the shell contains a form with an
+ * action: it queues a submission made before hydration and replays it after.
+ * Blocked, a submit in that window is lost — so this one matters.
  *
  * Allowed by hash rather than by loosening script-src: a hash admits exactly
  * this text and nothing else. TODO: remove once Next stamps the nonce onto
  * prerendered inline scripts — https://github.com/vercel/next.js/issues/89754.
- * If a Next upgrade changes the script, the console shows a CSP violation
- * with the new hash; recompute with
- * `printf '%s' "$SCRIPT" | openssl dgst -sha256 -binary | openssl base64`.
+ * If a React upgrade changes a script, the console shows a CSP violation with
+ * the new hash; update the text here (the test recomputes the hash from it).
  */
-export const REACT_SHELL_TIME_SCRIPT = "requestAnimationFrame(function(){$RT=performance.now()});";
-const REACT_SHELL_TIME_SCRIPT_HASH = "sha256-7mu4H06fwDCjmnxxr/xNHyuQC6pLTHr4M2E4jXw5WZs=";
+export const REACT_SHELL_SCRIPTS = {
+  shellTime: "requestAnimationFrame(function(){$RT=performance.now()});",
+  formReplaying: [
+    'addEventListener("submit",function(a){if(!a.defaultPrevented){var b=a.target,d=a.submitter,',
+    'c=b.action,e=d;if(d){var f=d.getAttribute("formAction");null!=f&&(c=f,e=null)}',
+    "\"javascript:throw new Error('React form unexpectedly submitted.')\"===c&&",
+    "(a.preventDefault(),a=new FormData(b,e),c=b.ownerDocument||b,",
+    "(c.$$reactFormReplay=c.$$reactFormReplay||[]).push(b,d,a))}});",
+  ].join(""),
+} as const;
+const REACT_SHELL_SCRIPT_HASHES = [
+  "sha256-7mu4H06fwDCjmnxxr/xNHyuQC6pLTHr4M2E4jXw5WZs=",
+  "sha256-CwHpiObGc0Kj6qtRFzUVGqk0apwmCrylJaQU+RajuJ0=",
+] as const;
 
 /**
  * The Content-Security-Policy for a request.
@@ -51,7 +65,8 @@ const REACT_SHELL_TIME_SCRIPT_HASH = "sha256-7mu4H06fwDCjmnxxr/xNHyuQC6pLTHr4M2E
  *
  *   - external `<script src>` tags for the framework and route chunks —
  *     allowed by `'self'`;
- *   - one inline script, React's shell-time marker — allowed by its hash;
+ *   - React's shell-time marker and, on pages whose shell holds a form, its
+ *     form-replaying runtime — two fixed inline scripts, allowed by hash;
  *   - no inline flight data (`self.__next_f.push(...)`). Every route under
  *     `[locale]` has a request-time boundary in its layout (see
  *     `RequestBoundary` there), so every page is partially prerendered and
@@ -75,7 +90,7 @@ export function buildContentSecurityPolicy(nonce: string): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}' '${REACT_SHELL_TIME_SCRIPT_HASH}'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' ${REACT_SHELL_SCRIPT_HASHES.map((hash) => `'${hash}'`).join(" ")}${isDev ? " 'unsafe-eval'" : ""}`,
     // Next injects the critical CSS as an inline <style>, which no nonce is
     // applied to, so style-src has to allow inline. This is the one relaxation
     // in the policy; it is far less dangerous than script-src 'unsafe-inline'

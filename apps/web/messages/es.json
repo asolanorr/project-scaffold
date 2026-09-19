@@ -32,7 +32,8 @@
       "subtitle": "Bienvenido de nuevo.",
       "submit": "Iniciar sesión",
       "noAccount": "¿No tienes una cuenta?",
-      "createOne": "Crea una"
+      "createOne": "Crea una",
+      "forgotPassword": "¿Olvidaste tu contraseña?"
     },
     "signUp": {
       "title": "Crear una cuenta",
@@ -48,7 +49,35 @@
       "unexpected": "Algo salió mal. Inténtalo de nuevo.",
       "emailInvalid": "Introduce un correo electrónico válido.",
       "passwordTooShort": "Usa al menos {min} caracteres.",
-      "nameRequired": "Introduce tu nombre."
+      "nameRequired": "Introduce tu nombre.",
+      "invalidToken": "Ese enlace ya no es válido. Solicita uno nuevo.",
+      "verificationFailed": "Ese enlace de verificación expiró o ya fue usado. Inicia sesión para recibir uno nuevo."
+    },
+    "checkEmail": {
+      "title": "Revisa tu correo",
+      "subtitle": "Enviamos un enlace de verificación a {email}. Es válido durante 24 horas.",
+      "subtitleNoEmail": "Te enviamos un enlace de verificación. Es válido durante 24 horas.",
+      "resend": "Enviar el enlace de nuevo",
+      "resent": "Un nuevo enlace va en camino.",
+      "backToSignIn": "Volver a iniciar sesión"
+    },
+    "forgotPassword": {
+      "title": "¿Olvidaste tu contraseña?",
+      "subtitle": "Introduce tu correo y te enviaremos un enlace para elegir una nueva.",
+      "submit": "Enviar enlace",
+      "sentTitle": "Revisa tu correo",
+      "sent": "Si existe una cuenta para {email}, un enlace para restablecer la contraseña va en camino. Es válido durante 1 hora.",
+      "backToSignIn": "Volver a iniciar sesión"
+    },
+    "resetPassword": {
+      "title": "Elige una nueva contraseña",
+      "subtitle": "Al menos {min} caracteres. Se cerrarán todas las demás sesiones.",
+      "newPassword": "Nueva contraseña",
+      "submit": "Guardar contraseña",
+      "doneTitle": "Contraseña actualizada",
+      "done": "Tu contraseña cambió. Inicia sesión con la nueva.",
+      "missingToken": "Este enlace está incompleto. Solicita uno nuevo desde la página de contraseña olvidada.",
+      "requestNew": "Solicitar un enlace nuevo"
     }
   },
   "dashboard": {

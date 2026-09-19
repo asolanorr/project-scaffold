@@ -1,0 +1,62 @@
+name: E2E
+
+# Triggered by Vercel reporting a deployment, not chained after `build` in
+# CI: the preview has to exist before a browser can open it, and the CI job
+# has no way to know when that is. Waiting on this event is what makes the
+# run deterministic instead of a race that flakes.
+on:
+  deployment_status:
+
+permissions:
+  contents: read
+  deployments: read
+
+jobs:
+  playwright:
+    name: Playwright against the preview
+    # Only the web app's preview; production and the docs site are not
+    # targets. Vercel names the environment "Preview" or "Preview – <project>".
+    if: >-
+      github.event.deployment_status.state == 'success' &&
+      startsWith(github.event.deployment.environment, 'Preview') &&
+      !contains(github.event.deployment.environment, 'docs')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      TURBO_TELEMETRY_DISABLED: 1
+      BASE_URL: ${{ github.event.deployment_status.environment_url || github.event.deployment_status.target_url }}
+      # Preview deployments sit behind Vercel Deployment Protection. The
+      # secret comes from the Vercel project (Settings → Deployment
+      # Protection → Protection Bypass for Automation) and is sent as a header.
+      VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+
+    steps:
+      # The commit that was deployed, not the default branch.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.deployment.sha }}
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      - name: Install browsers
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run
+        run: pnpm test:e2e
+
+      - name: Upload report
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report-${{ github.event.deployment.sha }}
+          path: playwright-report
+          retention-days: 7

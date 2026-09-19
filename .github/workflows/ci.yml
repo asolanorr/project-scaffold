@@ -1,0 +1,98 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# A new push to the same branch supersedes the run in progress.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  NEXT_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+
+jobs:
+  check:
+    name: Lint, typecheck, test, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: scaffold_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # Throwaway database: created for this job, gone with it. Both URLs
+      # point at it because there is no pooler in front.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/scaffold_test
+      DIRECT_URL: postgres://postgres:postgres@localhost:5432/scaffold_test
+      # Not a secret. It signs sessions in a database that only exists for
+      # the next few minutes; @repo/env just needs 32 characters to boot.
+      BETTER_AUTH_SECRET: ci-only-signing-key-never-used-outside-this-job
+      BETTER_AUTH_URL: http://localhost:3000
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Reads the version from `packageManager` in package.json.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      # A lockfile that drifts in CI is an unreviewed dependency change.
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Lint and format together; `ci` never writes.
+      - name: Biome
+        run: pnpm exec biome ci .
+
+      # Two thresholds. Everything, dev tooling included, fails only on high
+      # and critical: a moderate advisory in a test runner is Renovate's job,
+      # not a red build. What ships to production is held to moderate.
+      - name: Audit (all dependencies, high+)
+        run: pnpm audit --audit-level=high
+
+      # `--prod` follows peer edges too: better-auth lists vitest and
+      # drizzle-kit as optional peers, so their dev-only advisories show up
+      # here. Those are listed in `auditConfig.ignoreGhsas` in
+      # pnpm-workspace.yaml, each with the reason; nothing else is ignored.
+      - name: Audit (production dependencies, moderate+)
+        run: pnpm audit --prod --audit-level=moderate
+
+      - name: Typecheck
+        run: pnpm turbo run typecheck
+
+      # Migrations run against a throwaway Postgres before merge. Direct call
+      # rather than `pnpm db:migrate`: that turbo task is marked interactive.
+      - name: Migrate
+        run: pnpm --filter @repo/db exec drizzle-kit migrate
+
+      # Database tests run inside a transaction each and roll back, so they
+      # share this one database without sharing state. See packages/db/src/testing.
+      - name: Test
+        run: pnpm turbo run test
+
+      - name: Build
+        run: pnpm turbo run build

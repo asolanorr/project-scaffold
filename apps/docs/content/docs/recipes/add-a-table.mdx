@@ -1,0 +1,54 @@
+---
+title: Add a table
+description: A new table, its migration, and the schemas everything else derives from.
+---
+
+About 15 minutes. The `projects` table is the template; copy its shape.
+
+## 1. Define the table
+
+Create `packages/db/src/schema/<entity>.ts`. Every application table has an
+`ownerId` referencing `users`, timestamps with time zone, and a `deletedAt`
+for soft delete — `OwnableTable` in `packages/auth` requires the last one, so
+a table without it will not compile against the ownership helpers.
+
+<include lang="ts" meta='title="packages/db/src/schema/projects.ts"'>../../../../../packages/db/src/schema/projects.ts#table</include>
+
+Index what the list query filters and sorts by, and nothing else yet.
+
+## 2. Derive the schemas
+
+In the same file. `.pick()` the columns a form may write; the select schema
+and the column allowlist define what may leave the server.
+
+<include lang="ts" meta='title="packages/db/src/schema/projects.ts"'>../../../../../packages/db/src/schema/projects.ts#schemas</include>
+
+## 3. Export it
+
+Add `export * from "./<entity>";` to `packages/db/src/schema/index.ts`.
+
+## 4. Generate and apply the migration
+
+```bash
+pnpm db:generate    # writes packages/db/migrations/<n>_<name>.sql — read it
+pnpm db:migrate     # applies it to DIRECT_URL
+```
+
+Read the SQL before committing it. drizzle-kit is right almost always; the
+exception is a rename, which it emits as drop-and-create unless you answer its
+prompt. Commit the SQL and the `meta/` snapshot together.
+
+## 5. Check the contract
+
+`pnpm check`. If the table is one Better Auth reads (it is not, for an
+application table), `packages/auth/src/__tests__/schema-contract.test.ts` is
+where the shape is pinned.
+
+## What not to do
+
+- Do not write `interface Entity { ... }` by hand. `Project` and
+  `ProjectView` are derived; yours are too.
+- Do not use `.omit()`. A column added in six months would be writable from
+  the request body on day one.
+- Do not skip `deletedAt`. Reads exclude soft-deleted rows everywhere; a table
+  without the column cannot take part.

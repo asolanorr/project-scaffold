@@ -1,0 +1,64 @@
+---
+title: "003 — Better Auth over Supabase Auth"
+description: Sessions in our own tables, joinable with our data, behind one indirection.
+---
+
+**Status:** Accepted.
+
+## Context
+
+Supabase is the Postgres host, and it ships an auth service: GoTrue, with
+users in an `auth` schema, JWTs, a JavaScript client, and Row Level Security
+policies keyed on `auth.uid()`. Using it would mean the application's users
+live in a schema the application does not own, sessions are JWTs the
+application does not issue, and authorization would naturally drift toward
+RLS policies written in SQL and tested in the dashboard.
+
+The architecture wants the opposite: authorization in the service layer,
+where it is a `WHERE` clause and a unit test (ADR 006); data-layer
+portability, so leaving Supabase is a connection-string change; and users
+joinable with application tables without crossing a schema boundary.
+
+Better Auth runs inside the app, stores users, sessions and accounts in
+tables the app migrates, and exposes an HTTP handler with rate limiting and
+origin checks built in.
+
+## Decision
+
+Better Auth, on the Drizzle adapter, with tables in `packages/db` alongside
+the application tables. The app reaches it only through `@repo/auth`, which
+is the single indirection that keeps it replaceable:
+
+<include lang="ts" meta='title="packages/auth/src/session.ts"'>../../../../../packages/auth/src/session.ts</include>
+
+Mutations go through the HTTP handler, never `auth.api.*` directly, because
+the rate limiter and the origin check live in the router:
+
+<include lang="ts" meta='title="packages/auth/src/next.ts"'>../../../../../packages/auth/src/next.ts</include>
+
+## Consequences
+
+- **Users are a table.** `projects.owner_id` references `users.id` with a
+  real foreign key; the ownership predicate is a join, not a JWT claim.
+- **No vendor tie at the auth layer.** Moving off Supabase moves the auth
+  tables along with everything else. Supabase Auth would have had to be
+  migrated separately, users re-invited or passwords reset.
+- **We own the security surface.** Rate limiting, origin checks, cookie
+  attributes, the auth event log — all configured in `packages/auth`, all
+  tested there. Supabase Auth would have handled some of this for us; the
+  trade is control and testability for convenience.
+- **Email verification is off until there is a transport** (ADR-adjacent:
+  see the email recipe). Supabase Auth would send the emails itself.
+- **Social login is plugins**, configured in the same file. Google is on the
+  roadmap; nothing structural changes when it lands.
+- **The `supabase-js` client is not used for anything**, which is what makes
+  ADR 006's RLS posture — enabled, no policies — safe: no code path expects
+  policies to let it through.
+
+## When to revisit
+
+- A requirement for Supabase-native features that key on `auth.uid()` —
+  Storage policies per user, Realtime authorization — and the effort to
+  bridge them exceeds the effort to switch.
+- Better Auth stalls as a project. The indirection through `@repo/auth`
+  exists for this case; the app imports nothing from `better-auth`.

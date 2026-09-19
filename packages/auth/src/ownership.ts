@@ -24,11 +24,13 @@ export type OwnableTable = PgTable & {
  * than something to leak, and it cannot race a concurrent write between the
  * read and the check.
  */
+//#region ownedBy
 export function ownedBy(table: OwnableTable, id: string, ownerId: string): SQL {
   // `and()` returns undefined only for an empty argument list; three fixed
   // conditions cannot produce that.
   return and(eq(table.id, id), eq(table.ownerId, ownerId), isNull(table.deletedAt)) as SQL;
 }
+//#endregion
 
 /**
  * Fetch a row the caller owns, or stop the request with a 404.

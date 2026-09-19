@@ -1,0 +1,80 @@
+---
+title: Add a feature
+description: From a table to a working, tested, translated page — the eight steps, in order.
+---
+
+Half a day for a CRUD feature the size of `projects`; an hour for a read-only
+one. The steps depend on each other — each compiles against the previous.
+
+## 1. Table and migration
+
+[Add a table](./add-a-table). Everything downstream derives its types from it.
+
+## 2. Feature schemas
+
+`apps/web/src/features/<name>/schema.ts`: the input the database does not
+model — list filters, the id an action acts on, error codes. Row schemas stay
+in `packages/db`.
+
+<include lang="ts" meta='title="apps/web/src/features/projects/schema.ts"'>../../../../../apps/web/src/features/projects/schema.ts</include>
+
+Import row schemas from `@repo/db/schema` when a client component needs them,
+never from `@repo/db` — the barrel carries the Postgres client.
+
+## 3. Queries
+
+`queries.ts`, with `import "server-only"` at the top. Cached with `"use cache"`
+and a tag; the user id is a parameter; owner and `deletedAt IS NULL` in the
+`WHERE`; named columns.
+
+<include lang="ts" meta='title="apps/web/src/features/projects/queries.ts"'>../../../../../apps/web/src/features/projects/queries.ts</include>
+
+## 4. Actions
+
+`actions.ts`, `"use server"`. Six steps in this order, every time:
+
+<include lang="ts" meta='title="apps/web/src/features/projects/actions.ts"'>../../../../../apps/web/src/features/projects/actions.ts#create</include>
+
+Return, do not throw, for expected failures: the result is a discriminated
+union with message keys. Throw only for bugs — the error boundary and Sentry
+take those. Never export a helper from this file; exported means callable
+over HTTP.
+
+Add the tags the feature invalidates to `apps/web/src/lib/cache-tags.ts`.
+
+## 5. Components
+
+`components/`. Server components by default; `"use client"` only on the
+leaves that need state or events. Strings come from `useTranslations` /
+`getTranslations`; add the keys to `messages/en.json` and `messages/es.json`
+in the same change — `global.d.ts` types the keys against `en.json`, so a
+missing key is a type error.
+
+Reach for `@repo/ui` first: `DataTable` for lists, `Input` / `Select` /
+`TextArea` with React Hook Form for forms, `Modal` for confirmations, `toast`
+for outcomes. A component that is missing gets added with the Untitled UI
+CLI (see `packages/ui/AGENTS.md`), not hand-written.
+
+## 6. Routes
+
+`app/[locale]/(app)/<name>/`. Thin: layout, params, Suspense boundaries.
+Anything that reads the session or the search params sits inside a boundary;
+on a `[id]` route the whole page body does, because `params` itself is
+request data there.
+
+<include lang="tsx" meta='title="apps/web/src/app/[locale]/(app)/projects/[id]/page.tsx"'>../../../../../apps/web/src/app/[locale]/(app)/projects/[id]/page.tsx</include>
+
+Add the route prefix to `PROTECTED_PREFIXES` in `apps/web/src/lib/routes.ts`
+so the middleware redirects signed-out visitors — that is UX; the page's
+`requireSession()` is the authorization.
+
+## 7. Tests
+
+Unit tests for the actions with `setupTestTransaction()`, covering:
+unauthenticated, wrong owner, validation failure, a field outside the
+allowlist dropped, soft delete gone from the list, restore back in it, happy
+path. One Playwright spec in `e2e/` for the main flow.
+
+## 8. `pnpm check`
+
+Then open a pull request; the checklist is in [Conventions](../conventions).

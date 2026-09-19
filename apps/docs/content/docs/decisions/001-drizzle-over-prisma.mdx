@@ -1,0 +1,59 @@
+---
+title: "001 — Drizzle over Prisma"
+description: Typed SQL with no engine, instead of a schema language with a query engine.
+---
+
+**Status:** Accepted.
+
+## Context
+
+The data layer has to run in a serverless runtime (Vercel functions), talk
+to Postgres through a connection pooler, produce migrations as committed SQL,
+and share one set of types with validation and forms. The two mature
+candidates were Prisma and Drizzle.
+
+Prisma brings its own schema language, a generated client, and — historically
+— a query engine binary that has to be shipped with the function. Its
+migration tool produces SQL, but the source of truth is `schema.prisma`, and
+the generated types live in `node_modules`. Drizzle's schema *is* TypeScript;
+queries are typed SQL; `drizzle-zod` derives validation schemas from the same
+table objects; there is no engine.
+
+## Decision
+
+Drizzle ORM with `drizzle-kit` for migrations, `postgres-js` as the driver,
+`drizzle-zod` for derived schemas. The whole schema layer of a table is one
+file:
+
+<include lang="ts" meta='title="packages/db/src/schema/projects.ts"'>../../../../../packages/db/src/schema/projects.ts#schemas</include>
+
+## Consequences
+
+- **One source of truth for types.** The table object produces the row type,
+  the insert schema, the form's resolver and the action's validator. A column
+  change breaks everything that depends on it in the same commit — which is
+  the point.
+- **Queries read as SQL.** `and(eq(t.id, id), eq(t.ownerId, userId))` is a
+  `WHERE` clause anyone can read, and the ownership predicate can be a
+  function that returns one. Prisma's `where: { id, ownerId }` is equivalent,
+  but the escape hatch to raw SQL is further away.
+- **Migrations are SQL files we read before committing.** drizzle-kit generates
+  them; a rename needs a human answer. Prisma's migrate is more automatic and
+  correspondingly more opaque.
+- **Nothing to ship but JavaScript.** No engine binary, no cold-start penalty
+  from loading one, no platform-specific build step.
+- **Less hand-holding.** Drizzle's relational query API is younger and its
+  error messages are terser. The team writes SQL-shaped code and is expected
+  to be comfortable doing so.
+- **Supabase's pooler needs `prepare: false`**, set once in
+  `packages/db/src/client.ts`. Prisma needs the equivalent `pgbouncer=true`;
+  neither is free of this.
+
+## When to revisit
+
+- If a project needs Prisma-only tooling — Prisma Studio for non-engineers,
+  Accelerate's global caching — and that outweighs the above.
+- If Drizzle's relational queries regress or stall; the code here uses the
+  SQL-style builder almost everywhere, so the exposure is small.
+- Not because of "Prisma is more popular". Both are past the point where
+  popularity predicts survival.

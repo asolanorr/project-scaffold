@@ -1,0 +1,27 @@
+---
+title: Decision log
+description: The alternatives that were considered, and why each one lost.
+---
+
+Architecture Decision Records. Each one has the same four parts: the
+**context** the decision was made in, the **decision**, the **consequences**
+we accepted, and **when to revisit** — the conditions under which the other
+option would win. A decision without the last part is a preference.
+
+Statuses: *Accepted* means the code does this today. *Accepted, not yet
+implemented* means the decision stands and the roadmap carries the work.
+
+| # | Decision | Status |
+| --- | --- | --- |
+| [001](./001-drizzle-over-prisma) | Drizzle over Prisma | Accepted |
+| [002](./002-server-actions-over-trpc) | Server Actions over tRPC | Accepted |
+| [003](./003-better-auth-over-supabase-auth) | Better Auth over Supabase Auth | Accepted |
+| [004](./004-untitled-ui-over-shadcn) | Untitled UI over shadcn/ui | Accepted |
+| [005](./005-cache-tags-over-revalidatepath) | Cache tags over `revalidatePath` | Accepted |
+| [006](./006-rls-enabled-no-policies) | RLS enabled, with no policies | Accepted, not yet implemented |
+
+## Writing a new one
+
+Copy the newest file, bump the number, keep the four parts. An ADR is written
+when the decision is made, not after — the value is in the context, which is
+forgotten first.

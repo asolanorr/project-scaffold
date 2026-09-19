@@ -33,3 +33,6 @@ test-results/
 # misc
 *.tsbuildinfo
 .vercel/
+
+# fumadocs generated content
+.source/

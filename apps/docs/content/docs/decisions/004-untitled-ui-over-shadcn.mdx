@@ -1,0 +1,60 @@
+---
+title: "004 — Untitled UI over shadcn/ui"
+description: One primitive layer (React Aria) and one-to-one parity with the Figma kit.
+---
+
+**Status:** Accepted.
+
+## Context
+
+Both are copy-in component libraries: the CLI writes source into the
+repository, and the team owns it from there. shadcn/ui is the more common
+choice and is built on Radix. Untitled UI React is built on React Aria and
+mirrors the Untitled UI Figma kit token for token.
+
+Two things decided it. First, design parity: the projects this scaffold is
+for are designed in Figma with the Untitled UI kit, and a component layer
+whose tokens are the kit's tokens removes the translation step between design
+and implementation. Second, the primitive layer: React Aria's accessibility
+model — collections, selection, focus management, its `Table` and toast
+region — is the more complete of the two, and mixing Radix and React Aria in
+one app duplicates portals, focus scopes and keyboard handling.
+
+## Decision
+
+Untitled UI React, open-source tier, added with its CLI into `packages/ui`.
+React Aria is the only primitive layer; no Radix, shadcn/ui or Headless UI.
+Our own compositions — `DataTable` on TanStack Table, `Toaster` on React
+Aria's toast queue — live in `packages/ui/src/composed` and know nothing about
+any feature. Icons go through one adapter so the icon set is swappable:
+
+<include lang="tsx" meta='title="packages/ui/src/icons.tsx"'>../../../../../packages/ui/src/icons.tsx</include>
+
+## Consequences
+
+- **Design tokens are the API.** `bg-brand-solid`, `text-tertiary`,
+  `ring-error` — a hex value in feature code is a review comment.
+- **The CLI overwrites.** `untitledui add <component>` re-copies every
+  component the new one depends on and discards local changes. The rule is
+  commit first, run the CLI, restore the deviations from the diff; the list of
+  deviations is in `packages/ui/AGENTS.md`. shadcn's CLI has the same shape,
+  so this is not a point against Untitled UI, but it bit once here.
+- **Upstream strings are English.** Components that render text — the
+  password toggle's label, the table's empty state — got props with English
+  defaults so the app can pass translations. Compositions do this from the
+  start.
+- **The free tier has gaps.** No toast component, no pagination that is not
+  an example page. Those became compositions. The PRO tier is not assumed
+  anywhere.
+- **Fewer community examples** than shadcn. The Figma kit, and Untitled UI's
+  own docs, are the reference instead.
+- **Not reusable in React Native.** Nor is shadcn. A mobile app shares
+  `packages/db` and the schema contracts, not the components.
+
+## When to revisit
+
+- The design source of truth stops being the Untitled UI kit. Parity was the
+  strongest argument; without it the comparison is React Aria vs Radix, which
+  still favours React Aria for data-heavy UI but less decisively.
+- React Aria's toast and table APIs, still `UNSTABLE_`-prefixed in places,
+  change incompatibly. The compositions are small; that is a morning.

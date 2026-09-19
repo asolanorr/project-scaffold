@@ -1,0 +1,10 @@
+{
+  "title": "Recipes",
+  "pages": [
+    "add-a-table",
+    "add-a-feature",
+    "add-a-protected-route",
+    "add-an-email",
+    "add-a-background-job"
+  ]
+}

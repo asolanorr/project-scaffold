@@ -1022,6 +1022,11 @@ Still outstanding in v0.2: seed data.
 **v0.3 — documentation**
 Fumadocs site, recipes, ADRs, contributor guide.
 
+Built so far: `apps/docs` with the seven sections of §13, code samples
+included from source at build time, six ADRs (Drizzle, Server Actions, Better
+Auth, Untitled UI, cache tags, RLS). The email and background-job recipes
+describe the intended shape and are marked as such until v0.4 lands.
+
 **v0.4 — optional modules**
 Payments (`PaymentProvider` interface with a Tilopay or Stripe adapter),
 transactional email, background jobs, file uploads, audit log, admin panel.

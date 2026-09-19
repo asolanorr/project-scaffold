@@ -24,6 +24,7 @@ export type ProjectPage = {
   pageSize: number;
 };
 
+//#region list
 export async function listProjects(userId: string, filters: ProjectFilters): Promise<ProjectPage> {
   "use cache";
   cacheTag(cacheTags.projects(userId));
@@ -48,6 +49,7 @@ export async function listProjects(userId: string, filters: ProjectFilters): Pro
 
   return { items, total: totals?.total ?? 0, page: filters.page, pageSize: filters.pageSize };
 }
+//#endregion
 
 /**
  * One project the user owns, or null. Null covers "does not exist", "belongs

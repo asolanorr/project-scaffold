@@ -1,0 +1,59 @@
+---
+title: Getting started
+description: From clone to a signed-in dashboard in about ten minutes.
+---
+
+## Prerequisites
+
+- Node 24 (anything ≥ 20.9 works) and pnpm 10. `corepack enable` picks the
+  pinned version up from `package.json`.
+- Docker, for Postgres. Either the Supabase CLI or a plain container — the
+  repository README has both, with the connection strings each one gives you.
+
+## Clone and install
+
+```bash
+git clone <your fork> scaffold
+cd scaffold
+pnpm install
+```
+
+`pnpm install` also installs the Lefthook hooks: Biome runs on staged files
+and commitlint checks the message on every commit.
+
+## Environment
+
+One `.env` at the repository root, shared by the app, the migrations and the
+tests. Copy the example and fill in the values; every one is validated at
+startup by `packages/env`, and a missing or malformed value fails with a
+message that names the key.
+
+<include lang="dotenv" meta='title=".env.example"'>../../../../.env.example</include>
+
+The schema that validates it — the only place `process.env` is read:
+
+<include lang="ts" meta='title="packages/env/src/index.ts"'>../../../../packages/env/src/index.ts</include>
+
+## Database and first run
+
+```bash
+pnpm db:migrate   # applies packages/db/migrations to DIRECT_URL
+pnpm dev          # http://localhost:3000 (web) and :3001 (these docs)
+```
+
+Sign up at `/sign-up`, land on `/dashboard`, open `/projects`. `/es/...` serves
+the same pages in Spanish.
+
+## The commands you will use
+
+```bash
+pnpm check            # lint + typecheck + test — run before pushing
+pnpm test -- <file>   # one Vitest file
+pnpm test:e2e         # Playwright; starts the app if none is running
+pnpm db:generate      # a migration from a schema change
+pnpm format           # Biome, writing fixes
+```
+
+`pnpm check` runs the database tests when a Postgres is reachable and skips
+them with a warning when it is not; in CI they fail instead. See
+[Conventions → Testing](./conventions#testing).

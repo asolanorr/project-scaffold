@@ -1,0 +1,20 @@
+---
+title: Deployment
+description: Vercel and Supabase setup as a checklist, plus what the repository does on every deploy.
+---
+
+This page is `docs/deployment.md` from the repository, included at build time.
+
+<include>../../../../docs/deployment.md</include>
+
+## What runs on a deploy
+
+The build command Vercel uses for the web app:
+
+<include lang="json" meta='title="apps/web/vercel.json"'>../../../../apps/web/vercel.json</include>
+
+Migrations run first, against the deployment's `DIRECT_URL`, so a schema
+change and the code that needs it ship together or not at all. The workflow
+that runs Playwright once Vercel reports the preview ready:
+
+<include lang="yaml" meta='title=".github/workflows/e2e.yml"'>../../../../.github/workflows/e2e.yml</include>

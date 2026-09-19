@@ -1,0 +1,31 @@
+---
+title: Overview
+description: What this scaffold is, what it assumes, and where to go next.
+---
+
+Scaffold is a production-ready starting point for web applications: Next.js
+App Router, Postgres through Drizzle, Better Auth, Untitled UI on React Aria,
+next-intl with English and Spanish, in a pnpm + Turborepo monorepo. Every
+piece has a free tier, and the data layer is plain Postgres, so nothing here
+locks a project in.
+
+It is opinionated on purpose. The opinions are written down — in
+[Architecture](./architecture) as decisions, in [Conventions](./conventions)
+as rules, and in the [Decision log](./decisions) as the alternatives that were
+considered and why they lost.
+
+## How these docs stay honest
+
+Every code block that shows repository source is pulled from the real file at
+build time, not pasted. When the code changes, the docs change with it; when a
+file moves, the docs build fails rather than showing something that no longer
+exists.
+
+## Where to start
+
+<Cards>
+  <Card title="Getting started" href="./getting-started" description="Clone, install, first run." />
+  <Card title="The example CRUD" href="./example-crud" description="The projects feature, file by file." />
+  <Card title="Recipes" href="./recipes" description="Add a table, a feature, a protected route." />
+  <Card title="Deployment" href="./deployment" description="Vercel and Supabase, as a checklist." />
+</Cards>

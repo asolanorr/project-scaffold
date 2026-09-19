@@ -1,0 +1,12 @@
+{
+  "title": "Decision log",
+  "pages": [
+    "index",
+    "001-drizzle-over-prisma",
+    "002-server-actions-over-trpc",
+    "003-better-auth-over-supabase-auth",
+    "004-untitled-ui-over-shadcn",
+    "005-cache-tags-over-revalidatepath",
+    "006-rls-enabled-no-policies"
+  ]
+}

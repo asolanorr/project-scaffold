@@ -1,0 +1,37 @@
+---
+title: Add an email
+description: Planned for v0.4 — the shape it will take, so a feature written now leaves room for it.
+---
+
+<Callout type="warn" title="Not built yet">
+  Transactional email (Resend + React Email) is on the roadmap for v0.4.
+  Nothing in the repository sends email today; this page records the intended
+  shape so nothing written now has to be undone. It will be replaced by real
+  code samples when the module lands.
+</Callout>
+
+## The shape
+
+- **A package, `packages/email`**, owning the Resend client, the templates
+  (React Email components) and one function per message:
+  `sendVerificationEmail({ to, url, locale })`. The app never imports `resend`
+  directly — the same single indirection `@repo/auth` gives auth.
+- **Templates are translated** with the same message catalogs, keyed under an
+  `email.*` namespace. Subjects too; the i18n rule does not stop at the
+  browser.
+- **`RESEND_API_KEY` and `EMAIL_FROM`** go into `packages/env` and
+  `.env.example` in the same change. Previews send nothing: the client is a
+  no-op logger when the key is unset in a non-production environment.
+- **Sending is a side effect of an action**, after step 4 (execute) and before
+  step 6 (respond). It is rate limited on its own — an action that sends mail
+  is a way to make the app send mail, and Better Auth's limiter does not
+  cover it.
+- **Sign-up verification** is the first consumer: `requireEmailVerification`
+  in `packages/auth/src/auth.ts` is off today precisely because there is no
+  transport, and turns on in the same pull request that adds one.
+
+## What to do in the meantime
+
+If a feature needs to notify someone now, record the intent — a row in a
+`notifications` table with a `sentAt` of `null` — rather than reaching for a
+mail library ad hoc. The email module will drain that table.

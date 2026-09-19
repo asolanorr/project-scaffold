@@ -4,6 +4,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import type { z } from "zod";
 import { users } from "./auth";
 
+//#region table
 export const projectStatus = pgEnum("project_status", ["draft", "active", "archived"]);
 
 export const projects = pgTable(
@@ -30,7 +31,9 @@ export const projects = pgTable(
     uniqueIndex("projects_owner_name_uq").on(t.ownerId, t.name).where(isNull(t.deletedAt)),
   ],
 );
+//#endregion
 
+//#region schemas
 // Allowlist with .pick(), never a denylist with .omit().
 export const insertProjectSchema = createInsertSchema(projects, {
   name: (s) => s.min(2).max(120),
@@ -54,3 +57,4 @@ export type NewProject = z.infer<typeof insertProjectSchema>;
 export type Project = z.infer<typeof selectProjectSchema>;
 /** What a query or action hands back: the row narrowed to `projectColumns`. */
 export type ProjectView = Pick<Project, keyof typeof projectColumns>;
+//#endregion

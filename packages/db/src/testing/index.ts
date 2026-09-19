@@ -18,6 +18,7 @@ import { state, type Transaction } from "./state";
  * and fail in CI — a machine without Postgres should not report green, and a
  * pipeline without Postgres is misconfigured.
  */
+//#region harness
 export function setupTestTransaction(): () => Transaction {
   let release: (() => void) | undefined;
   let pending: Promise<void> | undefined;
@@ -95,6 +96,7 @@ export function setupTestTransaction(): () => Transaction {
     return state.tx;
   };
 }
+//#endregion
 
 class RollbackSignal extends Error {
   override readonly name = "RollbackSignal";

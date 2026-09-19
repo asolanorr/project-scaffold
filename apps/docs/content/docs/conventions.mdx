@@ -1,0 +1,85 @@
+---
+title: Conventions
+description: Naming, folder rules, commit format, testing, and the pull request checklist.
+---
+
+The rules live in `AGENTS.md` at the repository root, written for anyone —
+or anything — writing code here. This page is the human-paced version; the
+sixteen numbered rules there are the authority when the two disagree.
+
+## Folders
+
+```text
+apps/web/src/
+  app/                  routes only: layout, params, Suspense boundaries
+  features/<name>/      the feature: schema.ts, queries.ts, actions.ts, components/
+  lib/                  small shared helpers (form parsing, cache tags, validation)
+  i18n/                 routing and navigation wrappers
+packages/
+  db/src/schema/        one file per table, plus derived Zod schemas
+  auth/src/             Better Auth config, session and ownership helpers
+  ui/src/               Untitled UI components; composed/ for our own
+  env/src/              the validated environment
+```
+
+A feature can be deleted by removing one folder. Route files under `app/`
+stay thin: if a page grows logic, the logic moves to `features/<name>`.
+
+## Naming
+
+- Files: kebab-case (`project-form.tsx`, `cache-tags.ts`).
+- Components: PascalCase, one main export per file, named the same as the file.
+- Database tables: plural snake_case (`projects`, `auth_events`); columns
+  snake_case in SQL, camelCase in TypeScript — Drizzle maps them.
+- Translation keys: namespaced by feature and named for meaning, not
+  appearance: `projects.list.emptyFiltered`, never `projects.grayText`.
+- Cache tags: functions in `lib/cache-tags.ts`, never raw strings.
+
+## Commits
+
+Conventional Commits, enforced by commitlint on the `commit-msg` hook:
+
+```text
+feat(projects): add status filter
+fix(web): keep static pages hydrating under the nonce csp
+docs: testing rules
+```
+
+The subject is lower-case (commitlint rejects sentence case); the scope is
+the feature or package. The hooks:
+
+<include lang="yaml" meta='title="lefthook.yml"'>../../../../lefthook.yml</include>
+
+## Formatting and linting
+
+Biome, one tool for both, configured once in `packages/config/biome.json`.
+`pnpm format` writes fixes; CI runs `biome ci`, which never writes. The
+component library has a few documented exceptions — see
+`packages/ui/AGENTS.md`.
+
+## Testing
+
+- **Pure logic** gets a plain Vitest test: no database, no mocks of `db`.
+- **Anything that reads or writes the database** calls
+  `setupTestTransaction()` from `@repo/db/testing` at the top of the file.
+  Every test then runs inside a transaction that is rolled back, so tests
+  share one migrated database without sharing state. Code under test keeps
+  importing `db` from `@repo/db`; the project's Vitest setup file points it at
+  the open transaction.
+
+<include lang="ts" meta='title="packages/db/src/testing/index.ts"'>../../../../packages/db/src/testing/index.ts#harness</include>
+
+- **Locally without Postgres** the database tests skip with a warning. **In
+  CI** they fail — a pipeline without Postgres is misconfigured.
+- **One Playwright spec per main user flow** in `e2e/`, written against roles
+  and accessible names, run against the preview deployment.
+
+## Pull request checklist
+
+- [ ] `pnpm check` passes
+- [ ] New logic has tests
+- [ ] No new `any`, no `@ts-expect-error` without an explanatory comment
+- [ ] Environment variables added to `packages/env` **and** `.env.example`
+- [ ] Migration generated and committed if the schema changed
+- [ ] Both locales updated in the same change
+- [ ] The change is described in one sentence that would make sense in a changelog

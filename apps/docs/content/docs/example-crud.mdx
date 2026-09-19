@@ -1,0 +1,123 @@
+---
+title: The example CRUD
+description: The projects feature, file by file — every pattern the scaffold recommends, in the order the data flows.
+---
+
+`projects` is the reference implementation. When a convention and this
+feature disagree, the feature wins, because it is what gets copied. Every
+block below is the current source.
+
+## 1. The table and its schemas
+
+`packages/db/src/schema/projects.ts`. One file per table; the Zod schemas are
+derived from it, so a column change breaks the form, the action and the types
+in the same commit.
+
+<include lang="ts" meta='title="packages/db/src/schema/projects.ts"'>../../../../packages/db/src/schema/projects.ts#table</include>
+
+Two indexes worth reading: the composite index is exactly what the list query
+filters and sorts by, and the unique index on `(owner_id, name)` is partial —
+a deleted project must not block reusing its name.
+
+<include lang="ts" meta='title="packages/db/src/schema/projects.ts"'>../../../../packages/db/src/schema/projects.ts#schemas</include>
+
+`.pick()` and never `.omit()` is a security rule, not a style: a denylist
+makes every column added later writable from the request body. `projectColumns`
+is the same idea for what leaves the server.
+
+## 2. Ownership, in the query
+
+`packages/auth/src/ownership.ts`. Authorization is a `WHERE` clause. A scoped
+query cannot be forgotten the way a follow-up `if` can, returns nothing rather
+than something to leak, and cannot race a concurrent write.
+
+<include lang="ts" meta='title="packages/auth/src/ownership.ts"'>../../../../packages/auth/src/ownership.ts#ownedBy</include>
+
+## 3. Reads
+
+`apps/web/src/features/projects/queries.ts`. Cached, tagged, and pure
+functions of their arguments: the user id is a parameter, never the session.
+A cached function that read the session would serve one user's rows to the
+next.
+
+<include lang="ts" meta='title="apps/web/src/features/projects/queries.ts"'>../../../../apps/web/src/features/projects/queries.ts#list</include>
+
+The tags come from one module, as functions, so a typo is a type error rather
+than a cache entry nobody invalidates:
+
+<include lang="ts" meta='title="apps/web/src/lib/cache-tags.ts"'>../../../../apps/web/src/lib/cache-tags.ts</include>
+
+## 4. Writes
+
+`apps/web/src/features/projects/actions.ts`. Six steps, always in this order:
+authenticate, validate, authorize, execute, invalidate, respond. Every exported
+function in a `"use server"` file is a public HTTP endpoint, which is why the
+first line is `requireSession()` and why nothing else is exported from here.
+
+<include lang="ts" meta='title="apps/web/src/features/projects/actions.ts"'>../../../../apps/web/src/features/projects/actions.ts#create</include>
+
+`parseFormData` rather than `Object.fromEntries`, because the latter collapses
+repeated fields to their last value and hands everything over as a string:
+
+<include lang="ts" meta='title="apps/web/src/lib/form.ts"'>../../../../apps/web/src/lib/form.ts#parse</include>
+
+Validation messages are keys, never sentences. The action runs on the server
+with no locale; the component that renders the message has one:
+
+<include lang="ts" meta='title="apps/web/src/lib/validation.ts"'>../../../../apps/web/src/lib/validation.ts</include>
+
+## 5. URL state
+
+`apps/web/src/features/projects/search-params.ts`. Filters, sort and page are
+declared once; the page reads them on the server and the table writes them on
+the client. A filtered view is a link, and the back button steps through what
+the user did.
+
+<include lang="ts" meta='title="apps/web/src/features/projects/search-params.ts"'>../../../../apps/web/src/features/projects/search-params.ts</include>
+
+## 6. The list
+
+The route file is a frame. The session and the search params are request
+data, so they sit behind a Suspense boundary and the heading prerenders:
+
+<include lang="tsx" meta='title="apps/web/src/app/[locale]/(app)/projects/page.tsx"'>../../../../apps/web/src/app/[locale]/(app)/projects/page.tsx</include>
+
+The table is the generic `DataTable` from `packages/ui/src/composed`, which
+never fetches: it receives one page of rows and reports sorting and pagination
+changes through callbacks, and this component turns those into URL writes.
+
+<include lang="tsx" meta='title="apps/web/src/features/projects/components/projects-table.tsx"'>../../../../apps/web/src/features/projects/components/projects-table.tsx</include>
+
+## 7. The form
+
+Create and edit share one form. React Hook Form validates in the browser with
+the same schema the action uses; `useActionState` owns the submission. Note
+where the navigation happens — as a consequence of the action's result, not in
+an effect on `state`. Next keeps left-behind route segments mounted but hidden,
+and an effect that redirected on `state.ok` fires again when that segment is
+shown again.
+
+<include lang="tsx" meta='title="apps/web/src/features/projects/components/project-form.tsx"'>../../../../apps/web/src/features/projects/components/project-form.tsx</include>
+
+## 8. Delete with undo
+
+Delete is a soft delete, so undo is the restore action. The toast that offers
+it outlives the page it was raised on, and a Server Action is callable only
+from a route whose module graph references it — so the mutations live in a
+provider mounted from the projects layout, which every projects route shares.
+
+<include lang="tsx" meta='title="apps/web/src/features/projects/components/project-mutations.tsx"'>../../../../apps/web/src/features/projects/components/project-mutations.tsx</include>
+
+## 9. Tests
+
+The actions run against a real Postgres, each test inside a transaction that
+is rolled back. The cases the feature must cover: unauthenticated,
+authenticated but not the owner, validation failure, a field outside the
+allowlist silently dropped, soft delete disappearing from the list, restore
+bringing it back, and the happy path.
+
+<include lang="ts" meta='title="apps/web/src/features/projects/__tests__/actions.test.ts"'>../../../../apps/web/src/features/projects/\_\_tests\_\_/actions.test.ts</include>
+
+End to end, one spec covers sign in → create → filter → edit → delete → undo:
+
+<include lang="ts" meta='title="e2e/projects.spec.ts"'>../../../../e2e/projects.spec.ts</include>

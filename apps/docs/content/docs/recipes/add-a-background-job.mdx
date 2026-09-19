@@ -1,0 +1,47 @@
+---
+title: Add a background job
+description: Planned for v0.4 — what exists today for scheduled work, and the shape jobs will take.
+---
+
+<Callout type="warn" title="Partly built">
+  There is no job runner yet (v0.4). What exists is the pattern for scheduled
+  cleanup — a pure function in a package, callable from wherever the schedule
+  lives — and one such function is already written for the auth event log.
+</Callout>
+
+## What exists: a scheduled function
+
+`packages/auth` exports `purgeExpiredAuthEvents()`, which deletes auth events
+older than the retention window. It is a plain async function with no
+knowledge of what calls it:
+
+<include lang="ts" meta='title="packages/auth/src/events.ts"'>../../../../../packages/auth/src/events.ts#purge</include>
+
+Wiring it to a schedule is the outstanding v0.1 item. On Vercel the smallest
+correct version is a Cron Job hitting a route handler that verifies the
+`CRON_SECRET` header before calling the function — a route handler, because
+this is an external trigger, which is the one case route handlers exist for.
+
+## The shape for real jobs
+
+When a feature needs work that outlives a request — sending a batch of
+emails, generating an export — the plan is:
+
+- **A `jobs` table** (id, type, payload, status, attempts, `runAt`,
+  `lockedAt`), so a job is a row and the queue is Postgres. No second
+  infrastructure until there is a reason for one.
+- **Enqueue from an action**, as step 4 of the mutation, inside the same
+  transaction as the write it belongs to. A job for a record that was never
+  saved cannot exist.
+- **A worker route** on a cron schedule that claims rows with
+  `FOR UPDATE SKIP LOCKED`, runs the handler for `type`, and records the
+  outcome. Handlers are pure functions in `packages/jobs/src/handlers/`,
+  tested without the worker.
+- **Idempotent handlers.** A job may run twice; the handler must be safe to
+  repeat.
+
+## What to do in the meantime
+
+Do the work inline in the action if it takes under a second; otherwise
+record the intent as a row and leave a `TODO(jobs)` pointing here. Do not add
+a queue library for one job.

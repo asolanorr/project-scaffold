@@ -69,6 +69,7 @@ const REACT_SHELL_TIME_SCRIPT_HASH = "sha256-7mu4H06fwDCjmnxxr/xNHyuQC6pLTHr4M2E
  * `unsafe-eval` in development only — React's dev tooling and Turbopack's HMR
  * need it, and shipping it would defeat most of the policy.
  */
+//#region policy
 export function buildContentSecurityPolicy(nonce: string): string {
   const isDev = edgeEnv.NODE_ENV === "development";
 
@@ -94,6 +95,7 @@ export function buildContentSecurityPolicy(nonce: string): string {
     "upgrade-insecure-requests",
   ].join("; ");
 }
+//#endregion
 
 /**
  * Headers applied to every response, redirects included.

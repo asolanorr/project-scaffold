@@ -17,6 +17,7 @@
  */
 export type ParsedFormValue = string | File | undefined | (string | File)[];
 
+//#region parse
 export function parseFormData(formData: FormData): Record<string, ParsedFormValue> {
   const result: Record<string, ParsedFormValue> = {};
 
@@ -43,6 +44,7 @@ export function parseFormData(formData: FormData): Record<string, ParsedFormValu
 
   return result;
 }
+//#endregion
 
 /**
  * A checkbox that is unchecked sends nothing at all, so a schema expecting a

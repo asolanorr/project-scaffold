@@ -102,7 +102,9 @@ export async function logAuthEvent(
  * is no scheduler in the scaffold yet, so today this is called by hand or from
  * a deploy step.
  */
+//#region purge
 export async function purgeExpiredAuthEvents(now: Date = new Date()): Promise<void> {
   const cutoff = new Date(now.getTime() - AUTH_EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
   await db.delete(authEvents).where(lt(authEvents.createdAt, cutoff));
 }
+//#endregion

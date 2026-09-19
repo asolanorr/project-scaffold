@@ -23,6 +23,7 @@ export type ProjectActionState = ActionState<ProjectView, ProjectErrorCode>;
 /** Postgres: unique_violation. Here that is always `projects_owner_name_uq`. */
 const UNIQUE_VIOLATION = "23505";
 
+//#region create
 export async function createProject(
   _prev: ProjectActionState,
   formData: FormData,
@@ -60,6 +61,7 @@ export async function createProject(
     throw error;
   }
 }
+//#endregion
 
 export async function updateProject(
   _prev: ProjectActionState,

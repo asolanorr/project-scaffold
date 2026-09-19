@@ -1,0 +1,62 @@
+---
+title: "002 — Server Actions over tRPC"
+description: Mutations as framework primitives, not a second RPC layer.
+---
+
+**Status:** Accepted.
+
+## Context
+
+The app needs a way for forms to write to the database with validation,
+authentication and typed results. Before the App Router the answer would have
+been tRPC: a router of procedures, a typed client, React Query for the
+plumbing. With Server Actions, Next offers a typed function call from a form
+or a component to the server, with progressive enhancement, CSRF protection
+and `useActionState` for pending and result state built in.
+
+tRPC still has real advantages: procedures are discoverable in one router,
+input and output are typed end to end, middlewares compose, and the client is
+usable from anything, not only React components.
+
+## Decision
+
+Server Actions for every internal write, in a `"use server"` file per feature,
+each action following the six-step shape. No tRPC, no API route handlers for
+application writes; route handlers exist only for webhooks and public APIs.
+
+<include lang="ts" meta='title="apps/web/src/features/projects/actions.ts"'>../../../../../apps/web/src/features/projects/actions.ts#create</include>
+
+## Consequences
+
+- **No second layer.** No router, no client, no context plumbing, no React
+  Query for mutations. A form is `<Form action={formAction}>`, and works
+  before JavaScript loads.
+- **Every exported action is a public endpoint.** This is the cost, and the
+  discipline that pays it is written into the rules: `requireSession()` first,
+  Zod second, ownership in the query, never export a helper from an actions
+  file. tRPC's middleware would have made the first two harder to forget; here
+  the reviewer does that job.
+- **Results are a typed union, not a thrown error.** `ActionState<T, Code>`
+  carries field errors as message keys; the component translates. Throwing is
+  for bugs.
+- **Discoverability is by folder**, `features/<name>/actions.ts`, not by
+  router. Fine at this size; a project with hundreds of actions may want an
+  index.
+- **Three framework behaviours to know**, learned here and recorded in the
+  rules: an action is callable only from routes whose module graph references
+  it; navigation after an action belongs in the action's result handling, not
+  in an effect on state; `Object.fromEntries(formData)` is wrong, use
+  `parseFormData`.
+- **Origin checking is Next's**, via `serverActions.allowedOrigins`, and has
+  to be told about a custom domain. Done, from the same list Better Auth
+  trusts.
+
+## When to revisit
+
+- A non-React client — a mobile app, a CLI, a partner integration — needs
+  the same operations. Then the answer is a public API (route handlers with
+  their own auth), possibly tRPC or OpenAPI, *beside* the actions, not
+  instead of them.
+- Reads that are genuinely client-driven (infinite scroll, live polling)
+  outgrow the current "fetch on the server, TanStack Query only where needed"
+  stance. That is a reads question; actions remain the writes answer.

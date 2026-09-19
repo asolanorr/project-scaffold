@@ -1,0 +1,47 @@
+---
+title: Add a protected route
+description: Two layers, deliberately — the middleware redirects, the page authorizes.
+---
+
+About 10 minutes. There are two checks and they are not redundant.
+
+## 1. The page authorizes
+
+`requireSession()` is the first line of every page and action that needs a
+user. It redirects by throwing, so never wrap it in a broad `try/catch`.
+
+<include lang="ts" meta='title="packages/auth/src/session.ts"'>../../../../../packages/auth/src/session.ts</include>
+
+With `cacheComponents` on, reading the session outside a `<Suspense>` boundary
+is a build error, so the call goes inside the component the boundary wraps:
+
+<include lang="tsx" meta='title="apps/web/src/features/projects/components/projects-list.tsx"'>../../../../../apps/web/src/features/projects/components/projects-list.tsx</include>
+
+## 2. The middleware redirects
+
+Add the prefix to `PROTECTED_PREFIXES`. The middleware checks for the
+presence of a session cookie — not its validity — and sends signed-out
+visitors to `/sign-in?next=<where they were going>`, in their locale.
+
+<include lang="ts" meta='title="apps/web/src/lib/routes.ts"'>../../../../../apps/web/src/lib/routes.ts</include>
+
+This is UX, not authorization. A request can reach a page without passing
+through the middleware (see CVE-2025-29927, and the discussion in
+Architecture §5); the page's own check is what stands.
+
+## 3. Ownership
+
+A route that shows one record checks ownership in the query, never after it:
+
+<include lang="ts" meta='title="packages/auth/src/ownership.ts"'>../../../../../packages/auth/src/ownership.ts#ownedBy</include>
+
+A missing row, someone else's row and a deleted row are all `null`, and the
+page turns `null` into `notFound()` — 404, never 403, so an id's existence is
+not disclosed.
+
+## The middleware chain, for reference
+
+Locale first, then the auth redirect, then the CSP nonce and security headers.
+The order matters and the comment in the file says why.
+
+<include lang="ts" meta='title="apps/web/src/middleware.ts"'>../../../../../apps/web/src/middleware.ts#chain</include>

@@ -1,0 +1,69 @@
+---
+title: "006 — RLS enabled, with no policies"
+description: Row Level Security as a closed door, not as the authorization layer.
+---
+
+**Status:** Accepted, not yet implemented. The migrations do not call
+`.enableRLS()` yet; the deployment checklist has a manual step in the
+meantime, and the roadmap carries the migration.
+
+## Context
+
+Supabase makes it easy to read tables from a browser: an anon key, a
+JavaScript client, and Row Level Security policies deciding who sees which
+rows. Many Supabase apps put their authorization in those policies.
+
+This app does not use the Supabase client for anything (ADR 003). All reads
+and writes go through Drizzle over a connection the application owns, and
+authorization is a `WHERE` clause in the service layer, unit tested against a
+real database. Policies in SQL would duplicate that logic somewhere less
+testable, and — worse — would tempt the next feature into relying on them.
+
+But a table with RLS off is open to any client that ever gets hold of a
+Supabase key: Storage, a Realtime subscription, a quick script someone adds
+later. That is not a risk the application's own code can control.
+
+## Decision
+
+Enable Row Level Security on every table and write **no permissive
+policies**. With RLS on and nothing granting access, the anon and
+authenticated roles can read and write nothing. The application connects as a
+role that bypasses RLS, so the policies' absence costs it nothing at runtime.
+
+Authorization stays where it is:
+
+<include lang="ts" meta='title="packages/auth/src/ownership.ts"'>../../../../../packages/auth/src/ownership.ts#ownedBy</include>
+
+## Consequences
+
+- **Closed by default.** If a key leaks, or someone adds a Supabase client
+  feature in a hurry, the tables answer nothing. Opening one is a policy in
+  a migration, in a pull request, on purpose.
+- **Authorization has one home and one test suite.** The projects tests
+  cover "authenticated but not the owner" against a real Postgres; there is
+  no second place to keep in sync.
+- **The role matters.** The bypass depends on the app's connection role
+  having `bypassrls` — true for Supabase's `postgres` role, and for the
+  superuser in local and CI databases. A future move to a least-privilege
+  application role has to grant `BYPASSRLS` explicitly, or the app locks
+  itself out. This is the one operational sharp edge, and the reason the
+  migration is being added deliberately rather than slipped into a deploy.
+- **No policies means no policy tests**, which is the point: nothing to
+  drift.
+
+## Implementation, when it lands
+
+`pgTable(...).enableRLS()` on every table in `packages/db/src/schema`, one
+migration with `ALTER TABLE ... ENABLE ROW LEVEL SECURITY` per table, and a
+test in `packages/db` that queries `pg_tables.rowsecurity` for every table in
+the schema and expects `true`. Until then: enable it per table in the
+Supabase dashboard after the first deploy (deployment checklist, section 1).
+
+## When to revisit
+
+- A client-side data path is introduced on purpose — Realtime for live
+  updates, Storage with per-user access. Then policies for exactly those
+  tables, written and tested as migrations, and this ADR gets a successor.
+- The application stops connecting as a bypassing role. Then either grant
+  `BYPASSRLS` to the new role, or write policies for the application role
+  itself and accept the second authorization layer.

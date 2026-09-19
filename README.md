@@ -88,10 +88,18 @@ pnpm db:generate      # new migration from a schema change
 pnpm db:migrate       # apply migrations to DIRECT_URL
 ```
 
+## Documentation
+
+`pnpm dev` also serves the docs site at <http://localhost:3001>: getting
+started, the architecture, conventions, recipes, a walkthrough of the
+`projects` feature, deployment, and the decision log. Every code sample in it
+is included from the real source at build time, so it cannot drift.
+
 ## Layout
 
 ```text
 apps/web          Next.js application (App Router, Server Actions)
+apps/docs         Fumadocs documentation site
 packages/db       Drizzle schema, client, migrations, test harness
 packages/auth     Better Auth server config and session helpers
 packages/ui       Untitled UI components, theme tokens, icon adapter

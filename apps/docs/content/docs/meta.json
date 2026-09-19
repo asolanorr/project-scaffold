@@ -1,0 +1,13 @@
+{
+  "title": "Documentation",
+  "pages": [
+    "index",
+    "getting-started",
+    "architecture",
+    "conventions",
+    "recipes",
+    "example-crud",
+    "deployment",
+    "decisions"
+  ]
+}

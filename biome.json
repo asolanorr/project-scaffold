@@ -12,7 +12,7 @@
   },
   "overrides": [
     {
-      "includes": ["packages/ui/src/styles/**"],
+      "includes": ["packages/ui/src/styles/**", "apps/docs/src/app/global.css"],
       "linter": {
         "rules": {
           "complexity": {

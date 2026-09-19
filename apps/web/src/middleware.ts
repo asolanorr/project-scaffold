@@ -47,6 +47,7 @@ const handleLocale = createIntlMiddleware(routing);
  *    script tags, and next-intl copies those headers onto the response it
  *    builds in step 1. So the value is created first and applied last.
  */
+//#region chain
 export default function middleware(request: NextRequest): NextResponse {
   const nonce = createNonce();
   const csp = buildContentSecurityPolicy(nonce);
@@ -70,6 +71,7 @@ export default function middleware(request: NextRequest): NextResponse {
   applySecurityHeaders(final.headers, csp);
   return final;
 }
+//#endregion
 
 /**
  * Redirect signed-out visitors away from protected routes, and signed-in ones

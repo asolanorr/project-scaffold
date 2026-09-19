@@ -21,6 +21,11 @@ export const users = pgTable("users", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").notNull().default(false),
   image: text("image"),
+  // The language the account was created in. Mail the user did not ask for
+  // in a request — a password-changed notice — is written in it; mail they
+  // did ask for uses the request's locale. An additional field in Better
+  // Auth's user model, set from the sign-up body.
+  locale: text("locale").notNull().default("en"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()

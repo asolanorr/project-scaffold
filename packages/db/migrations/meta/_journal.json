@@ -15,6 +15,13 @@
       "when": 1789349633151,
       "tag": "0001_smooth_black_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789846525229,
+      "tag": "0002_user_locale",
+      "breakpoints": true
     }
   ]
 }

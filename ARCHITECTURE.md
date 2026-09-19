@@ -999,6 +999,14 @@ the retention job for auth events.
 Full `projects` CRUD end to end, shared data table, seed data, unit + E2E
 tests, all states translated.
 
+Built so far: the server layer (owner-scoped queries and the four actions,
+tested in rolled-back transactions), the shared `DataTable` and `Toaster` in
+`packages/ui/src/composed`, and the UI — list with URL-held filters, sort and
+pagination (nuqs), create and edit forms (React Hook Form + `useActionState`),
+delete with confirmation and undo, streamed detail page, empty, error and
+not-found states, both locales, one Playwright spec through the whole flow.
+Still outstanding in v0.2: seed data.
+
 **v0.3 — documentation**
 Fumadocs site, recipes, ADRs, contributor guide.
 

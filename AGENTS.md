@@ -200,7 +200,17 @@ compiling.
 8. Run `pnpm check`.
 
 The `projects` feature is the reference implementation. When in doubt about a
-pattern, read that folder rather than inventing something new.
+pattern, read that folder rather than inventing something new. Three things it
+does that are easy to get wrong elsewhere:
+
+- **Import row schemas from `@repo/db/schema` in client code**, never from
+  `@repo/db` — the barrel carries the Postgres client.
+- **Navigate from the action's result, not from an effect on `state`.** Next
+  keeps left-behind route segments mounted but hidden; an effect that
+  redirects on `state.ok` fires again when that segment is shown again.
+- **A Server Action is callable only from routes whose module graph references
+  it.** An undo toast that outlives the page it was raised on calls its action
+  from a provider in the feature's `layout.tsx`, not from the button.
 
 ---
 

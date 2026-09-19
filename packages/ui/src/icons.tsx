@@ -1,4 +1,5 @@
 import {
+  Add01Icon,
   ArrowDown01Icon,
   ArrowDown02Icon,
   ArrowLeft01Icon,
@@ -67,6 +68,7 @@ export const ChevronDown = createIcon("ChevronDown", ArrowDown01Icon);
 export const Check = createIcon("Check", Tick02Icon);
 export const SearchLg = createIcon("SearchLg", Search01Icon);
 export const User01 = createIcon("User01", UserIcon);
+export const Plus = createIcon("Plus", Add01Icon);
 export const ChevronSelectorVertical = createIcon("ChevronSelectorVertical", UnfoldMoreIcon);
 export const X = createIcon("X", Cancel01Icon);
 

@@ -18,7 +18,7 @@ src/
   styles/typography.css  .prose styles
   components/base/       Untitled UI components, one folder per component
   components/application/ Untitled UI application components (table)
-  composed/              our own compositions of the above (DataTable)
+  composed/              our own compositions of the above (DataTable, Toaster)
   utils/cx.ts            tailwind-merge wrapper; use for every conditional class
   icons.tsx              the icon adapter — see below
   fonts.ts               Inter, self-hosted through next/font/local
@@ -97,8 +97,24 @@ Kept deliberately small so `add --overwrite` stays an option:
   variant loads images from untitledui.com, which the CSP refuses.
 - `is-react-component.ts` carries a `biome-ignore-all` for `noExplicitAny`,
   `checkbox.tsx` two `biome-ignore` lines on the hint span, each with the reason.
+- `select/` ships `select`, `select-item`, `select-shared` and `popover` only:
+  `combobox` (and with it `Select.ComboBox`), `multi-select`, `tag-select` and
+  `select-native` are not included, nor the `hooks/` and `featured-icon` they
+  pull in. `avatar/` stays because the select renders item avatars.
+- `avatar/` `<img>` elements carry `biome-ignore` for `noImgElement`: avatars
+  come from arbitrary hosts, which next/image would need listed.
 
 ---
+
+## Toasts
+
+`composed/toaster.tsx` wraps React Aria's toast queue (still `UNSTABLE_` in
+react-aria-components, stable in behaviour). `toast({ title, description?,
+tone?, action? })` from anywhere on the client; `<Toaster>` is mounted once in
+the app's providers. An `action` is how an undo is offered — the callback
+runs, the toast closes. The queue is module-level, so a toast raised just
+before a navigation survives it. Untitled UI's free tier has no toast
+component, which is why this one is ours.
 
 ## Icons
 

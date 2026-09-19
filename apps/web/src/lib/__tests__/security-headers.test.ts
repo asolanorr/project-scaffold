@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { applySecurityHeaders, buildContentSecurityPolicy, createNonce } from "../security-headers";
+import {
+  applySecurityHeaders,
+  buildContentSecurityPolicy,
+  createNonce,
+  REACT_SHELL_TIME_SCRIPT,
+} from "../security-headers";
 
 const policy = () => buildContentSecurityPolicy("TEST_NONCE");
 
@@ -24,6 +29,16 @@ describe("createNonce", () => {
 });
 
 describe("buildContentSecurityPolicy", () => {
+  it("allows React's shell-time script by the hash of its exact text", async () => {
+    const digest = await crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(REACT_SHELL_TIME_SCRIPT),
+    );
+    const hash = `sha256-${Buffer.from(digest).toString("base64")}`;
+
+    expect(directive("script-src")).toContain(`'${hash}'`);
+  });
+
   it("carries the nonce in script-src", () => {
     expect(directive("script-src")).toContain("'nonce-TEST_NONCE'");
   });

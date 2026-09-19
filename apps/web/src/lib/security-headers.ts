@@ -14,34 +14,57 @@ export function createNonce(): string {
 }
 
 /**
+ * React's shell-time marker, verbatim. Fizz writes it as an inline script at
+ * the end of the prerendered shell (`shellTimeRuntimeScript` in
+ * react-dom-server), and a prerendered shell has no request and so no nonce.
+ * It only records when the shell painted, for Suspense reveal throttling;
+ * blocked, React falls back to revealing on the next frame.
+ *
+ * Allowed by hash rather than by loosening script-src: a hash admits exactly
+ * this text and nothing else. TODO: remove once Next stamps the nonce onto
+ * prerendered inline scripts — https://github.com/vercel/next.js/issues/89754.
+ * If a Next upgrade changes the script, the console shows a CSP violation
+ * with the new hash; recompute with
+ * `printf '%s' "$SCRIPT" | openssl dgst -sha256 -binary | openssl base64`.
+ */
+export const REACT_SHELL_TIME_SCRIPT = "requestAnimationFrame(function(){$RT=performance.now()});";
+const REACT_SHELL_TIME_SCRIPT_HASH = "sha256-7mu4H06fwDCjmnxxr/xNHyuQC6pLTHr4M2E4jXw5WZs=";
+
+/**
  * The Content-Security-Policy for a request.
  *
- * `script-src 'self' 'nonce-…'`, and deliberately NOT `'strict-dynamic'`,
- * which ARCHITECTURE.md §10 asks for. The two cannot both be had here:
+ * `script-src 'self' 'nonce-…' 'sha256-…'`, and deliberately NOT
+ * `'strict-dynamic'`, which ARCHITECTURE.md §10 asks for. The two cannot both
+ * be had here:
  *
  * `strict-dynamic` tells the browser to ignore every host-source expression,
  * `'self'` included, and to run only scripts carrying the nonce. Next stamps
  * the nonce onto its script tags by reading it from the request's CSP header —
  * which exists only when the HTML is rendered per request. With
- * cacheComponents on, the shells of these routes are prerendered at build time,
- * when there is no request and no nonce, so their script tags ship without one.
- * Under `strict-dynamic` that means every script on a prerendered page is
- * refused and the application does not boot at all. This was verified against a
- * build: a fully dynamic route gets nonced tags, a prerendered or partially
- * prerendered one does not.
+ * cacheComponents on, the shell of every route is prerendered at build time,
+ * when there is no request and no nonce, so the shell's script tags ship
+ * without one. Under `strict-dynamic` that means every script on a prerendered
+ * page is refused and the application does not boot at all.
  *
- * Without `strict-dynamic`, `'self'` and the nonce are alternatives rather than
- * one overriding the other: the prerendered tags are allowed by `'self'`, the
- * dynamic ones by either, and — the part that actually stops XSS — an injected
- * inline script is still refused, because there is no `'unsafe-inline'` and an
- * attacker cannot guess the nonce. What is given up is `strict-dynamic`'s real
- * job, which is letting one trusted script pull in others without maintaining a
- * host allowlist. This app loads no third-party scripts, so there is no
- * allowlist to maintain and nothing to gain.
+ * What the shell contains decides what the policy has to allow. Verified
+ * against a build (`.next/server/app/<locale>/<route>.html`):
  *
- * Getting `strict-dynamic` back means rendering every page dynamically
- * (`export const instant = false` throughout), which is the opposite of what
- * enabling cacheComponents was for.
+ *   - external `<script src>` tags for the framework and route chunks —
+ *     allowed by `'self'`;
+ *   - one inline script, React's shell-time marker — allowed by its hash;
+ *   - no inline flight data (`self.__next_f.push(...)`). Every route under
+ *     `[locale]` has a request-time boundary in its layout (see
+ *     `RequestBoundary` there), so every page is partially prerendered and
+ *     its flight data streams at request time, where Next stamps the nonce
+ *     on it. A fully static page would inline that data into the shell
+ *     without a nonce, the browser would refuse it, and the page would never
+ *     hydrate — silently, since forms still post without JavaScript.
+ *
+ * What stops XSS is unchanged: no `'unsafe-inline'`, and an attacker can
+ * guess neither the nonce nor a hash of their own script. What is given up is
+ * `strict-dynamic`'s real job, letting one trusted script pull in others
+ * without a host allowlist. This app loads no third-party scripts, so there is
+ * no allowlist to maintain and nothing to gain.
  *
  * `unsafe-eval` in development only — React's dev tooling and Turbopack's HMR
  * need it, and shipping it would defeat most of the policy.
@@ -51,7 +74,7 @@ export function buildContentSecurityPolicy(nonce: string): string {
 
   return [
     "default-src 'self'",
-    `script-src 'self' 'nonce-${nonce}'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' '${REACT_SHELL_TIME_SCRIPT_HASH}'${isDev ? " 'unsafe-eval'" : ""}`,
     // Next injects the critical CSS as an inline <style>, which no nonce is
     // applied to, so style-src has to allow inline. This is the one relaxation
     // in the policy; it is far less dangerous than script-src 'unsafe-inline'

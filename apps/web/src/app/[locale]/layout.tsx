@@ -1,7 +1,8 @@
 import { inter } from "@repo/ui/fonts";
+import { connection } from "next/server";
 import { NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
-import type { ReactNode } from "react";
+import { type ReactNode, Suspense } from "react";
 import { routing } from "@/i18n/routing";
 import { resolveLocale } from "@/lib/locale";
 import { Providers } from "./providers";
@@ -41,7 +42,26 @@ export default async function LocaleLayout({
         <NextIntlClientProvider>
           <Providers>{children}</Providers>
         </NextIntlClientProvider>
+        <Suspense fallback={null}>
+          <RequestBoundary />
+        </Suspense>
       </body>
     </html>
   );
+}
+
+/**
+ * Renders nothing; exists to make every route partially prerendered.
+ *
+ * `connection()` is a request-time read, so this boundary cannot be resolved
+ * at build. Next then prerenders the static shell and streams the rest per
+ * request — and "the rest" includes the page's flight data, which is what
+ * gets the CSP nonce stamped on it. Without this, a fully static page inlines
+ * its flight data into the shell with no nonce, the browser refuses it, and
+ * the page never hydrates. See buildContentSecurityPolicy in
+ * lib/security-headers.ts.
+ */
+async function RequestBoundary() {
+  await connection();
+  return null;
 }

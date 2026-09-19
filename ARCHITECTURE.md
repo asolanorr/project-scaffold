@@ -717,7 +717,7 @@ The middleware already runs for locale handling, so the marginal cost of
 adding a nonce-based Content Security Policy there is small. The baseline:
 
 ```
-Content-Security-Policy      script-src 'self' 'nonce-<generated>'
+Content-Security-Policy      script-src 'self' 'nonce-<generated>' 'sha256-<react shell script>'
 Strict-Transport-Security    max-age=63072000; includeSubDomains; preload
 X-Content-Type-Options       nosniff
 Referrer-Policy              strict-origin-when-cross-origin
@@ -753,6 +753,22 @@ nothing.
 
 The nonce is still generated and still plumbed through, because it is what
 makes any future inline script safe to add, and because the cost is one line.
+
+**Two things follow from "prerendered shells have no nonce", and both are
+handled.** First, the shell is not only external script tags: React writes one
+inline script into it, a shell-time marker (`$RT=performance.now()`), and
+`'self'` does not cover inline. It is allowed by the hash of its exact text —
+a hash admits that script and nothing else — with a TODO pointing at
+vercel/next.js#89754 for the day Next stamps nonces onto prerendered inline
+scripts. Second, and more serious: a *fully* static page inlines its RSC
+flight data into the shell too, also without a nonce, so the browser refuses
+it and the page never hydrates — silently, because forms still post without
+JavaScript. Every route under `[locale]` therefore has a request-time boundary
+in the layout (`RequestBoundary`, a `<Suspense>` around `connection()`), which
+makes every page partially prerendered: the shell stays static, and the flight
+data streams per request with the nonce on it. Removing that boundary, or
+adding a page outside the `[locale]` layout, brings the bug back; the check is
+`.next/server/app/<route>.html` containing no `self.__next_f.push` script.
 
 Getting `strict-dynamic` back means rendering every page dynamically
 (`export const instant = false` throughout), which is the opposite of what

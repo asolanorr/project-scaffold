@@ -1,0 +1,52 @@
+{
+  "common": {
+    "appName": "Scaffold",
+    "signIn": "Sign in",
+    "signUp": "Sign up",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "submitting": "Working…",
+    "togglePassword": "Show or hide password"
+  },
+  "marketing": {
+    "title": "Scaffold",
+    "description": "A production-ready starting point for building web applications fast.",
+    "getStarted": "Get started"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Sign in",
+      "subtitle": "Welcome back.",
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "createOne": "Create one"
+    },
+    "signUp": {
+      "title": "Create an account",
+      "subtitle": "It takes a moment.",
+      "submit": "Create account",
+      "haveAccount": "Already have an account?",
+      "signInInstead": "Sign in"
+    },
+    "errors": {
+      "invalidCredentials": "Those details do not match an account.",
+      "emailTaken": "That email cannot be used to create an account.",
+      "tooManyRequests": "Too many attempts. Try again in a minute.",
+      "unexpected": "Something went wrong. Try again.",
+      "emailInvalid": "Enter a valid email address.",
+      "passwordTooShort": "Use at least {min} characters.",
+      "nameRequired": "Enter your name."
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "signedInAs": "Signed in as {email}",
+    "loading": "Loading…"
+  },
+  "errors": {
+    "notFoundTitle": "Page not found",
+    "notFoundDescription": "That page does not exist, or it moved."
+  }
+}

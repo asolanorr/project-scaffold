@@ -1,0 +1,52 @@
+{
+  "common": {
+    "appName": "Scaffold",
+    "signIn": "Iniciar sesión",
+    "signUp": "Crear cuenta",
+    "signOut": "Cerrar sesión",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "name": "Nombre",
+    "submitting": "Procesando…",
+    "togglePassword": "Mostrar u ocultar contraseña"
+  },
+  "marketing": {
+    "title": "Scaffold",
+    "description": "Un punto de partida listo para producción para crear aplicaciones web rápido.",
+    "getStarted": "Comenzar"
+  },
+  "auth": {
+    "signIn": {
+      "title": "Iniciar sesión",
+      "subtitle": "Bienvenido de nuevo.",
+      "submit": "Iniciar sesión",
+      "noAccount": "¿No tienes una cuenta?",
+      "createOne": "Crea una"
+    },
+    "signUp": {
+      "title": "Crear una cuenta",
+      "subtitle": "Toma un momento.",
+      "submit": "Crear cuenta",
+      "haveAccount": "¿Ya tienes una cuenta?",
+      "signInInstead": "Iniciar sesión"
+    },
+    "errors": {
+      "invalidCredentials": "Esos datos no coinciden con ninguna cuenta.",
+      "emailTaken": "Ese correo no se puede usar para crear una cuenta.",
+      "tooManyRequests": "Demasiados intentos. Inténtalo de nuevo en un minuto.",
+      "unexpected": "Algo salió mal. Inténtalo de nuevo.",
+      "emailInvalid": "Introduce un correo electrónico válido.",
+      "passwordTooShort": "Usa al menos {min} caracteres.",
+      "nameRequired": "Introduce tu nombre."
+    }
+  },
+  "dashboard": {
+    "title": "Panel",
+    "signedInAs": "Sesión iniciada como {email}",
+    "loading": "Cargando…"
+  },
+  "errors": {
+    "notFoundTitle": "Página no encontrada",
+    "notFoundDescription": "Esa página no existe o fue movida."
+  }
+}

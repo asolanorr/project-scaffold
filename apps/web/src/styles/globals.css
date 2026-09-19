@@ -1,0 +1,4 @@
+/* The design system lives in @repo/ui: Tailwind, the Untitled UI theme tokens
+   and the plugins the components rely on. App-specific styles go below the
+   import, but reach for a token class first — see packages/ui/AGENTS.md. */
+@import "@repo/ui/styles.css";

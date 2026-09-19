@@ -1,0 +1,33 @@
+{
+  "name": "@repo/auth",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./edge": "./src/edge.ts"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@repo/db": "workspace:*",
+    "@repo/env": "workspace:*",
+    "better-auth": "1.7.4",
+    "drizzle-orm": "0.45.2"
+  },
+  "devDependencies": {
+    "@better-auth/core": "1.7.4",
+    "@better-auth/memory-adapter": "1.7.4",
+    "@repo/config": "workspace:*",
+    "@types/node": "24.13.4",
+    "next": "16.3.5",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  },
+  "peerDependencies": {
+    "next": ">=16.0.0"
+  }
+}

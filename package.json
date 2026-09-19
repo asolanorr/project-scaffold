@@ -1,0 +1,31 @@
+{
+  "name": "scaffold",
+  "private": true,
+  "packageManager": "pnpm@10.34.5",
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "check": "turbo run lint typecheck test",
+    "typecheck": "tsc --noEmit",
+    "test": "turbo run test",
+    "format": "biome check --write .",
+    "test:e2e": "playwright test",
+    "db:generate": "turbo run db:generate -F @repo/db",
+    "db:migrate": "turbo run db:migrate -F @repo/db",
+    "prepare": "lefthook install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.13",
+    "@commitlint/cli": "21.2.2",
+    "@commitlint/config-conventional": "21.2.2",
+    "@playwright/test": "1.63.0",
+    "@repo/config": "workspace:*",
+    "@types/node": "24.13.4",
+    "lefthook": "2.1.12",
+    "turbo": "2.10.12",
+    "typescript": "5.9.3"
+  }
+}

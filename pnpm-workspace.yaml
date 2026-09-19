@@ -1,0 +1,15 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+onlyBuiltDependencies:
+  - esbuild
+  - lefthook
+
+# `pnpm audit --prod` follows better-auth's optional peer edges to vitest and
+# drizzle-kit, so their dev-only advisories would fail the production audit.
+# Remove an entry when the tool is upgraded past it.
+auditConfig:
+  ignoreGhsas:
+    - GHSA-67mh-4wv8-2f99 # esbuild dev server CORS, via drizzle-kit
+    - GHSA-82fw-gwwq-j7x9 # @vitest/mocker path traversal, via vitest

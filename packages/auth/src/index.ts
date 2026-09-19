@@ -1,4 +1,9 @@
 export { auth, type Session, type SessionUser } from "./auth";
+export {
+  LOCALE_HEADER,
+  RESET_TOKEN_TTL_SECONDS,
+  VERIFICATION_TOKEN_TTL_SECONDS,
+} from "./email-flows";
 export { recordAuthEvent } from "./event-hook";
 export {
   AUTH_EVENT_RETENTION_DAYS,

@@ -14,7 +14,8 @@ import { describe, expect, it } from "vitest";
 // typechecks cleanly and then fails at runtime on the first sign-in. These
 // tests are the compile-time check that does not exist.
 const REQUIRED_FIELDS: Record<string, readonly string[]> = {
-  users: ["id", "name", "email", "emailVerified", "image", "createdAt", "updatedAt"],
+  // `locale` is an additional field (see email-flows.userLocaleField).
+  users: ["id", "name", "email", "emailVerified", "image", "locale", "createdAt", "updatedAt"],
   sessions: [
     "id",
     "expiresAt",

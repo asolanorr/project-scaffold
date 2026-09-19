@@ -26,7 +26,9 @@ vi.mock("next/navigation", () => ({
   },
 }));
 
-const { getSession, requireSession, SIGN_IN_PATH } = await import("../session");
+const { getSession, requireSession, SIGN_IN_PATH, STALE_SESSION_PARAM } = await import(
+  "../session"
+);
 
 const requestHeaders = new Headers({ cookie: "better-auth.session_token=abc" });
 const session = { session: { id: "s_1" }, user: { id: "u_1", email: "a@example.com" } };
@@ -51,11 +53,24 @@ describe("requireSession", () => {
     expect(getSessionMock).toHaveBeenCalledWith({ headers: requestHeaders });
   });
 
-  it("redirects to the sign-in page when there is no session", async () => {
+  it("redirects to the sign-in page when there is no session and no cookie", async () => {
     getSessionMock.mockResolvedValue(null);
+    headersMock.mockResolvedValue(new Headers());
 
     await expect(requireSession()).rejects.toThrow(RedirectError);
     await expect(requireSession()).rejects.toMatchObject({ to: SIGN_IN_PATH });
+  });
+
+  // The cookie is there but the session is gone — expired, or revoked by a
+  // password reset elsewhere. The middleware would read the cookie as
+  // "signed in" and bounce /sign-in back to the dashboard, which would land
+  // here again: a loop. The parameter is what tells it not to.
+  it("marks the redirect when a stale session cookie is present", async () => {
+    getSessionMock.mockResolvedValue(null);
+
+    await expect(requireSession()).rejects.toMatchObject({
+      to: `${SIGN_IN_PATH}?${STALE_SESSION_PARAM}=1`,
+    });
   });
 
   // The redirect is a thrown control-flow error. If requireSession ever

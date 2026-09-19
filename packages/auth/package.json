@@ -14,9 +14,11 @@
   },
   "dependencies": {
     "@repo/db": "workspace:*",
+    "@repo/email": "workspace:*",
     "@repo/env": "workspace:*",
     "better-auth": "1.7.4",
-    "drizzle-orm": "0.45.2"
+    "drizzle-orm": "0.45.2",
+    "jose": "6.2.12"
   },
   "devDependencies": {
     "@better-auth/core": "1.7.4",

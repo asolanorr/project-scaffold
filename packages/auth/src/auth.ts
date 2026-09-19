@@ -2,7 +2,17 @@ import { db } from "@repo/db";
 import { deploymentOrigins, env } from "@repo/env";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
+import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import {
+  afterPasswordChange,
+  beforePasswordReset,
+  emailRateLimitRules,
+  emailVerificationOptions,
+  passwordOptions,
+  singleUseVerificationTokens,
+  userLocaleField,
+} from "./email-flows";
 import { recordAuthEvent } from "./event-hook";
 
 const isHttps = env.BETTER_AUTH_URL.startsWith("https://");
@@ -24,13 +34,13 @@ export const auth = betterAuth({
 
   emailAndPassword: {
     enabled: true,
-    // Off so that a fresh clone can sign up before Resend is configured — with
-    // this on and no email transport, the first account created is also the
-    // first account permanently locked out. Turn it on in the same change that
-    // adds RESEND_API_KEY and the verification email template; leaving it off
-    // past that point means an unverified address can hold an account.
-    requireEmailVerification: false,
+    // Verification, reset, the password-changed notice, token lifetimes: all
+    // in ./email-flows, with the tests that drive them.
+    ...passwordOptions,
   },
+  emailVerification: emailVerificationOptions,
+
+  user: { additionalFields: userLocaleField },
 
   // storage must be "database". The default is per-instance memory, which on
   // serverless means each cold start begins with an empty counter — that is not
@@ -46,6 +56,9 @@ export const auth = betterAuth({
     window: 60,
     max: 20,
     storage: "database",
+    // Endpoints that make the app send mail to an arbitrary address get a
+    // tighter limit of their own; see ./email-flows.
+    customRules: emailRateLimitRules,
   },
 
   session: {
@@ -63,7 +76,19 @@ export const auth = betterAuth({
     },
   },
 
-  hooks: { after: recordAuthEvent },
+  // One hook per phase, so each is composed here. Wrapped in
+  // createAuthMiddleware: the router reads headers off a hook's return value,
+  // and a bare async function returning undefined crashes it.
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      await singleUseVerificationTokens(ctx);
+      await beforePasswordReset(ctx);
+    }),
+    after: createAuthMiddleware(async (ctx) => {
+      await recordAuthEvent(ctx);
+      await afterPasswordChange(ctx);
+    }),
+  },
 
   // Must stay last in the list. It makes `getSession()` behave inside a Server
   // Component: a read there can fall due for a session refresh, and an RSC

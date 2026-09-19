@@ -3,6 +3,7 @@ import { parseSetCookieHeader, toCookieOptions } from "better-auth/cookies";
 import { toNextJsHandler } from "better-auth/next-js";
 import { cookies, headers } from "next/headers";
 import { auth } from "./auth";
+import { LOCALE_HEADER } from "./email-flows";
 
 /**
  * Route handlers for app/api/auth/[...all]. Exported from here so the app never
@@ -30,10 +31,15 @@ export const authRouteHandlers = toNextJsHandler(auth.handler);
 export async function callAuthEndpoint(
   path: `/${string}`,
   body: Record<string, unknown>,
+  options: {
+    /** The request's locale: the language any mail this call sends is written in. */
+    locale?: string;
+  } = {},
 ): Promise<Response> {
   const incoming = await headers();
 
   const forwarded = new Headers({ "content-type": "application/json" });
+  if (options.locale) forwarded.set(LOCALE_HEADER, options.locale);
   // The cookie carries an existing session; /change-password and /sign-out are
   // meaningless without it.
   copyHeader(incoming, forwarded, "cookie");

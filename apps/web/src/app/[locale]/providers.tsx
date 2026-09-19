@@ -1,14 +1,15 @@
 "use client";
 
+import { Toaster } from "@repo/ui/composed/toaster";
 import { RouterProvider } from "@repo/ui/router";
-import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
-import { getPathname, useRouter } from "@/i18n/navigation";
+import { getPathname } from "@/i18n/navigation";
 
-// Lets React Aria type the `routerOptions` argument of `navigate` as what
-// next-intl's router accepts: Next's NavigateOptions plus `locale`. The
-// augmentation is the only reason react-aria-components is a direct
-// dependency here; components still come from @repo/ui.
+// Lets React Aria type the `routerOptions` argument of `navigate` as Next's
+// NavigateOptions. The augmentation is the only reason react-aria-components
+// is a direct dependency here; components still come from @repo/ui.
 declare module "react-aria-components" {
   interface RouterConfig {
     routerOptions: NonNullable<Parameters<ReturnType<typeof useRouter>["push"]>[1]>;
@@ -19,23 +20,30 @@ declare module "react-aria-components" {
  * Client-side providers for everything under `[locale]`.
  *
  * `RouterProvider` makes every React Aria link — `Button` with an `href`, for
- * one — navigate through the app router instead of a full page load. Wired to
- * next-intl's wrappers around `next/navigation` rather than to
- * `next/navigation` directly: those add the locale prefix, so a Spanish
- * visitor clicking `href="/sign-up"` lands on `/es/sign-up`, and `useHref`
- * writes the same localized URL into the anchor for hover, right-click and
- * crawlers.
+ * one — navigate through the app router instead of a full page load. The
+ * locale prefix is added by `getPathname` from next-intl, a pure function of
+ * the locale from context, for both the anchor's `href` and the navigation.
+ *
+ * `useRouter` comes from `next/navigation`, not next-intl's wrapper: the
+ * wrapper reads `usePathname()`, which on a route with an unknown segment
+ * (`/projects/[id]`) is request data, and reading it here — above every
+ * Suspense boundary — would stop such routes from prerendering at all.
+ *
+ * `Toaster` mounts the one toast region.
  */
 export function Providers({ children }: { children: ReactNode }) {
   const router = useRouter();
   const locale = useLocale();
+  const t = useTranslations("common");
+  const localize = (href: string) => getPathname({ href, locale });
 
   return (
     <RouterProvider
-      navigate={(href, options) => router.push(href, options)}
-      useHref={(href) => getPathname({ href, locale })}
+      navigate={(href, options) => router.push(localize(href), options)}
+      useHref={localize}
     >
       {children}
+      <Toaster labels={{ region: t("notifications"), close: t("close") }} />
     </RouterProvider>
   );
 }

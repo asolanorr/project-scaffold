@@ -8,7 +8,18 @@
     "password": "Contraseña",
     "name": "Nombre",
     "submitting": "Procesando…",
-    "togglePassword": "Mostrar u ocultar contraseña"
+    "togglePassword": "Mostrar u ocultar contraseña",
+    "cancel": "Cancelar",
+    "save": "Guardar cambios",
+    "create": "Crear",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "back": "Volver",
+    "undo": "Deshacer",
+    "retry": "Reintentar",
+    "notifications": "Notificaciones",
+    "close": "Cerrar",
+    "loading": "Cargando…"
   },
   "marketing": {
     "title": "Scaffold",
@@ -43,10 +54,88 @@
   "dashboard": {
     "title": "Panel",
     "signedInAs": "Sesión iniciada como {email}",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "projectsLink": "Ir a proyectos"
   },
   "errors": {
     "notFoundTitle": "Página no encontrada",
     "notFoundDescription": "Esa página no existe o fue movida."
+  },
+  "validation": {
+    "required": "Este campo es obligatorio.",
+    "tooShort": "Demasiado corto.",
+    "tooLong": "Demasiado largo.",
+    "invalid": "Este valor no es válido."
+  },
+  "projects": {
+    "title": "Proyectos",
+    "description": "Todo en lo que estás trabajando.",
+    "new": "Nuevo proyecto",
+    "list": {
+      "ariaLabel": "Proyectos",
+      "search": "Buscar por nombre",
+      "searchPlaceholder": "Buscar…",
+      "statusFilter": "Estado",
+      "allStatuses": "Todos los estados",
+      "clearFilters": "Limpiar filtros",
+      "columns": {
+        "name": "Nombre",
+        "status": "Estado",
+        "updatedAt": "Actualizado",
+        "createdAt": "Creado"
+      },
+      "empty": "Aún no hay proyectos",
+      "emptyDescription": "Crea tu primer proyecto para verlo aquí.",
+      "emptyFiltered": "Ningún proyecto coincide",
+      "emptyFilteredDescription": "Prueba otra búsqueda o limpia los filtros.",
+      "error": "No se pudo cargar la lista.",
+      "previous": "Anterior",
+      "next": "Siguiente",
+      "pagination": "Paginación",
+      "pageOf": "Página {page} de {total}"
+    },
+    "status": {
+      "draft": "Borrador",
+      "active": "Activo",
+      "archived": "Archivado"
+    },
+    "form": {
+      "createTitle": "Nuevo proyecto",
+      "createSubtitle": "Ponle un nombre; lo demás puede esperar.",
+      "editTitle": "Editar proyecto",
+      "editSubtitle": "Los cambios se aplican al guardar.",
+      "name": "Nombre",
+      "namePlaceholder": "Rediseño del sitio web",
+      "description": "Descripción",
+      "descriptionPlaceholder": "¿De qué trata este proyecto?",
+      "status": "Estado",
+      "submitCreate": "Crear proyecto",
+      "submitEdit": "Guardar cambios",
+      "submitting": "Guardando…"
+    },
+    "detail": {
+      "created": "Creado el {date}",
+      "updated": "Actualizado el {date}",
+      "noDescription": "Sin descripción.",
+      "backToList": "Todos los proyectos",
+      "notFoundTitle": "Proyecto no encontrado",
+      "notFoundDescription": "No existe, fue eliminado o pertenece a otra persona."
+    },
+    "delete": {
+      "title": "¿Eliminar este proyecto?",
+      "description": "{name} desaparecerá de tu lista. Puedes deshacerlo durante unos segundos.",
+      "confirm": "Eliminar",
+      "cancel": "Cancelar",
+      "deleted": "Proyecto eliminado",
+      "deletedDescription": "{name} ya no está.",
+      "restored": "Proyecto restaurado",
+      "undoFailed": "No se pudo restaurar. Puede que el nombre esté en uso."
+    },
+    "errors": {
+      "notFound": "Ese proyecto ya no existe.",
+      "nameTaken": "Ya tienes un proyecto con ese nombre.",
+      "title": "Algo salió mal",
+      "description": "La página de proyectos tuvo un error. Inténtalo de nuevo y, si se repite, avísanos."
+    }
   }
 }

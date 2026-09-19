@@ -8,7 +8,18 @@
     "password": "Password",
     "name": "Name",
     "submitting": "Working…",
-    "togglePassword": "Show or hide password"
+    "togglePassword": "Show or hide password",
+    "cancel": "Cancel",
+    "save": "Save changes",
+    "create": "Create",
+    "delete": "Delete",
+    "edit": "Edit",
+    "back": "Back",
+    "undo": "Undo",
+    "retry": "Try again",
+    "notifications": "Notifications",
+    "close": "Close",
+    "loading": "Loading…"
   },
   "marketing": {
     "title": "Scaffold",
@@ -43,10 +54,88 @@
   "dashboard": {
     "title": "Dashboard",
     "signedInAs": "Signed in as {email}",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "projectsLink": "Go to projects"
   },
   "errors": {
     "notFoundTitle": "Page not found",
     "notFoundDescription": "That page does not exist, or it moved."
+  },
+  "validation": {
+    "required": "This field is required.",
+    "tooShort": "Too short.",
+    "tooLong": "Too long.",
+    "invalid": "This value is not valid."
+  },
+  "projects": {
+    "title": "Projects",
+    "description": "Everything you are working on.",
+    "new": "New project",
+    "list": {
+      "ariaLabel": "Projects",
+      "search": "Search by name",
+      "searchPlaceholder": "Search…",
+      "statusFilter": "Status",
+      "allStatuses": "All statuses",
+      "clearFilters": "Clear filters",
+      "columns": {
+        "name": "Name",
+        "status": "Status",
+        "updatedAt": "Updated",
+        "createdAt": "Created"
+      },
+      "empty": "No projects yet",
+      "emptyDescription": "Create your first project to see it here.",
+      "emptyFiltered": "No projects match",
+      "emptyFilteredDescription": "Try a different search or clear the filters.",
+      "error": "The list could not be loaded.",
+      "previous": "Previous",
+      "next": "Next",
+      "pagination": "Pagination",
+      "pageOf": "Page {page} of {total}"
+    },
+    "status": {
+      "draft": "Draft",
+      "active": "Active",
+      "archived": "Archived"
+    },
+    "form": {
+      "createTitle": "New project",
+      "createSubtitle": "Give it a name; everything else can wait.",
+      "editTitle": "Edit project",
+      "editSubtitle": "Changes apply as soon as you save.",
+      "name": "Name",
+      "namePlaceholder": "Website redesign",
+      "description": "Description",
+      "descriptionPlaceholder": "What is this project about?",
+      "status": "Status",
+      "submitCreate": "Create project",
+      "submitEdit": "Save changes",
+      "submitting": "Saving…"
+    },
+    "detail": {
+      "created": "Created {date}",
+      "updated": "Updated {date}",
+      "noDescription": "No description.",
+      "backToList": "All projects",
+      "notFoundTitle": "Project not found",
+      "notFoundDescription": "It does not exist, it was deleted, or it belongs to someone else."
+    },
+    "delete": {
+      "title": "Delete this project?",
+      "description": "{name} will be removed from your list. You can undo this for a few seconds.",
+      "confirm": "Delete",
+      "cancel": "Cancel",
+      "deleted": "Project deleted",
+      "deletedDescription": "{name} is gone.",
+      "restored": "Project restored",
+      "undoFailed": "It could not be restored. The name may be in use."
+    },
+    "errors": {
+      "notFound": "That project no longer exists.",
+      "nameTaken": "You already have a project with that name.",
+      "title": "Something went wrong",
+      "description": "The projects page hit an error. Try again, and if it keeps happening, tell us."
+    }
   }
 }

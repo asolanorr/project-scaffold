@@ -1,7 +1,7 @@
 import "server-only";
 
 import { db, type ProjectView, projectColumns, projects } from "@repo/db";
-import { and, count, desc, eq, ilike, isNull, type SQL } from "drizzle-orm";
+import { and, asc, count, desc, eq, ilike, isNull, type SQL } from "drizzle-orm";
 import { cacheTag } from "next/cache";
 import { cacheTags } from "@/lib/cache-tags";
 import type { ProjectFilters } from "./schema";
@@ -39,7 +39,8 @@ export async function listProjects(userId: string, filters: ProjectFilters): Pro
       .select(projectColumns)
       .from(projects)
       .where(where)
-      .orderBy(desc(projects.createdAt), desc(projects.id))
+      // The id breaks ties so a page boundary never shuffles between requests.
+      .orderBy(orderBy(filters), desc(projects.id))
       .limit(filters.pageSize)
       .offset((filters.page - 1) * filters.pageSize),
     db.select({ total: count() }).from(projects).where(where),
@@ -66,6 +67,19 @@ export async function getProject(userId: string, projectId: string): Promise<Pro
     .limit(1);
 
   return project ?? null;
+}
+
+/** Only the columns in PROJECT_SORT_FIELDS — the schema has already refused anything else. */
+const sortColumns = {
+  name: projects.name,
+  status: projects.status,
+  createdAt: projects.createdAt,
+  updatedAt: projects.updatedAt,
+} as const;
+
+function orderBy(filters: ProjectFilters): SQL {
+  const column = sortColumns[filters.sort];
+  return filters.dir === "asc" ? asc(column) : desc(column);
 }
 
 function buildFilters(filters: ProjectFilters): SQL[] {

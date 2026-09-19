@@ -27,7 +27,7 @@ const { listProjects } = await import("../queries");
 setupTestTransaction();
 
 const initial = { ok: false } as const;
-const defaultFilters = { page: 1, pageSize: 20 } as const;
+const defaultFilters = { page: 1, pageSize: 20, sort: "createdAt", dir: "desc" } as const;
 
 const signedInAs = (user: typeof OWNER) => requireSessionMock.mockResolvedValue(sessionFor(user));
 const signedOut = () =>
@@ -54,7 +54,10 @@ describe("createProject", () => {
     await expect(createProject(initial, form({ name: "Alpha" }))).rejects.toThrow(
       "NEXT_REDIRECT:/sign-in",
     );
-    expect(await db.select().from(projects)).toHaveLength(0);
+    // Scoped to this test's users: the database is shared, so other rows may
+    // exist, but nothing may have been written on their behalf.
+    expect(await db.select().from(projects).where(eq(projects.ownerId, OWNER.id))).toHaveLength(0);
+    expect(await db.select().from(projects).where(eq(projects.ownerId, OTHER.id))).toHaveLength(0);
   });
 
   it("returns field errors as message keys on invalid input", async () => {
@@ -82,7 +85,8 @@ describe("createProject", () => {
     );
 
     expect(result.ok).toBe(true);
-    const [row] = await db.select().from(projects);
+    if (!result.ok) return;
+    const [row] = await db.select().from(projects).where(eq(projects.id, result.data.id));
     expect(row?.ownerId).toBe(OWNER.id);
     expect(row?.deletedAt).toBeNull();
     expect(row?.id).not.toBe("00000000-0000-4000-8000-000000000000");

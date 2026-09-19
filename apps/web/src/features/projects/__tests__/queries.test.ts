@@ -16,7 +16,7 @@ const { getProject, listProjects } = await import("../queries");
 
 setupTestTransaction();
 
-const filters = { page: 1, pageSize: 20 } as const;
+const filters = { page: 1, pageSize: 20, sort: "createdAt", dir: "desc" } as const;
 
 // Rows for both users, inserted directly: these tests are about reading, and
 // going through the actions would make a read failure look like a write one.
@@ -81,6 +81,16 @@ describe("listProjects", () => {
     expect(cacheTagMock).toHaveBeenCalledWith(cacheTags.projects(OWNER.id));
   });
 
+  it("sorts by the requested column and direction", async () => {
+    await seedProjects();
+
+    const byName = await listProjects(OWNER.id, { ...filters, sort: "name", dir: "asc" });
+    const byNameDesc = await listProjects(OWNER.id, { ...filters, sort: "name", dir: "desc" });
+
+    expect(byName.items.map((p) => p.name)).toEqual(["Alpha", "Beta 100%"]);
+    expect(byNameDesc.items.map((p) => p.name)).toEqual(["Beta 100%", "Alpha"]);
+  });
+
   it("filters by status", async () => {
     await seedProjects();
 
@@ -101,8 +111,8 @@ describe("listProjects", () => {
   it("paginates and reports the total across pages", async () => {
     await seedProjects();
 
-    const first = await listProjects(OWNER.id, { page: 1, pageSize: 1 });
-    const second = await listProjects(OWNER.id, { page: 2, pageSize: 1 });
+    const first = await listProjects(OWNER.id, { ...filters, page: 1, pageSize: 1 });
+    const second = await listProjects(OWNER.id, { ...filters, page: 2, pageSize: 1 });
 
     expect(first.items).toHaveLength(1);
     expect(second.items).toHaveLength(1);

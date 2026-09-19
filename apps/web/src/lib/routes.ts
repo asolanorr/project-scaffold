@@ -7,7 +7,7 @@
  * page's own `requireSession()` will still catch, because this list is UX and
  * not the authorization boundary.
  */
-export const PROTECTED_PREFIXES = ["/dashboard"] as const;
+export const PROTECTED_PREFIXES = ["/dashboard", "/projects"] as const;
 
 /** Signed-in users have no reason to see these, so they get bounced onward. */
 export const AUTH_PREFIXES = ["/sign-in", "/sign-up"] as const;

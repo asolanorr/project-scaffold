@@ -1,3 +1,4 @@
+import { Button } from "@repo/ui/components/base/buttons/button";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
 import { SessionDetails } from "@/features/auth/components/session-details";
@@ -10,6 +11,11 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
   return (
     <main className="mx-auto flex w-full max-w-container flex-col gap-6 px-4 py-12 md:px-8">
       <h1 className="text-display-xs font-semibold text-primary">{t("title")}</h1>
+      <div>
+        <Button color="secondary" href="/projects">
+          {t("projectsLink")}
+        </Button>
+      </div>
 
       {/* With cacheComponents on, anything that reads request data — the
           session, inside SessionDetails — has to sit behind a boundary, or the

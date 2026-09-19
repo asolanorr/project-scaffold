@@ -287,7 +287,9 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { db } from "@repo/db";
 
 export const auth = betterAuth({
-  database: drizzleAdapter(db, { provider: "pg" }),
+  // usePlural: the schema names tables `users` and `sessions` like every
+  // application table, and Better Auth's models are singular.
+  database: drizzleAdapter(db, { provider: "pg", usePlural: true }),
   emailAndPassword: {
     enabled: true,
     // off by default so a fresh clone can sign up before email is configured.
@@ -297,20 +299,33 @@ export const auth = betterAuth({
   // storage must be "database": the default is per-instance memory, which on
   // serverless means no effective limit at all.
   rateLimit: { enabled: true, window: 60, max: 20, storage: "database" },
-  socialProviders: {
-    google: {
-      clientId: env.GOOGLE_CLIENT_ID,
-      clientSecret: env.GOOGLE_CLIENT_SECRET,
-    },
-  },
   session: { expiresIn: 60 * 60 * 24 * 30, updateAge: 60 * 60 * 24 },
+  hooks: { after: recordAuthEvent },
+  // must stay last: makes getSession() behave inside a Server Component.
+  plugins: [nextCookies()],
 });
 ```
 
-Generate the auth tables into the Drizzle schema with `npx auth@latest
-generate`, then commit them like any other table. Sessions and users live in
-your Postgres, which means a project can be joined directly against
-application tables — no cross-service lookups.
+**Do not also set `rateLimit.modelName`.** With `usePlural` on, an explicit
+model name is pluralised on top of itself and the adapter looks for
+`rateLimitss` — which typechecks, and then throws the first time a request is
+actually rate limited. There is a test pinning this.
+
+**Social providers are not wired yet.** Adding Google means adding
+`GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` to `packages/env`, which makes
+them required at boot and breaks a fresh clone until someone creates an OAuth
+app. It belongs in the change that actually needs it, alongside the sign-in
+button.
+
+Generate the auth tables into the Drizzle schema and commit them like any
+other table. The `@better-auth/cli` release train lags the library, so the
+schema in `packages/db/src/schema/auth.ts` was derived from Better Auth's own
+`getAuthTables()` for this project's options rather than from the CLI, with
+two deliberate departures: plural snake_case names, and `timestamptz` instead
+of the generator's bare `timestamp`, which silently drops the offset.
+
+Sessions and users live in your Postgres, which means a project can be joined
+directly against application tables — no cross-service lookups.
 
 **Prepared but disabled:** the `organization` plugin is installed and its
 tables are defined behind a feature flag. A single-tenant project ignores it.
@@ -434,6 +449,17 @@ caches one user's data and serves it to the next — an authorization failure
 that no permission check will catch, because the code is correct and the cache
 is wrong. This is the sharpest edge of enabling `cacheComponents`.
 
+**Request data needs a Suspense boundary, or the build fails.** With
+`cacheComponents` on, reading `cookies()`, `headers()`, `params`,
+`searchParams` or the session outside a `<Suspense>` is a build error, not a
+warning — Next refuses to prerender the route and says so. This is the rule
+that shapes every page in practice: the route file renders a static shell and
+puts the part that depends on the request behind a boundary, which is what the
+"Suspense boundaries" in the layering table above means. A page that genuinely
+cannot be split — every byte of it depends on the session — declares
+`export const instant = false` and blocks. Reach for that only when it is true;
+reaching for it to silence the error throws away the static shell.
+
 **Never invalidate by path.** With a `[locale]` segment and route groups, the
 real route is `/[locale]/(app)/projects`, so `revalidatePath("/projects")`
 matches nothing and fails silently — the English user sees their new record and
@@ -462,8 +488,17 @@ Consequences to hold onto:
   reachable; exported ones are. Helpers go in a separate module.
 - Never rely on the UI to constrain input. A disabled field, a hidden input and
   a filtered select do not exist on the server.
-- Auth endpoints are rate limited by Better Auth. Actions that send email,
-  trigger a job or hit a paid API need their own limit.
+- Auth endpoints are rate limited by Better Auth, but only when they are
+  reached through its HTTP handler. The limiter and the origin check live in
+  the router, so calling `auth.api.signInEmail()` directly from a Server Action
+  skips both — sign-in becomes unlimited, which is the one endpoint that must
+  not be. Measured, not assumed: with `max: 3`, ten direct `auth.api` calls
+  were limited zero times and ten through the handler returned 429 seven times.
+  `packages/auth` exposes `callAuthEndpoint`, which dispatches through the
+  handler and forwards the resulting cookies; use it, and never reach for
+  `auth.api.*` to perform a mutation.
+- Actions that send email, trigger a job or hit a paid API need their own
+  limit.
 - Server Actions get CSRF protection for free: Next validates the request
   Origin against the Host. Route handlers do not. That is the second reason
   route handlers exist only for webhooks — and a webhook means signature
@@ -524,9 +559,67 @@ apps/web/
 - `setRequestLocale` is called in every layout so pages stay statically
   renderable.
 
-**Middleware composition:** the locale middleware and the auth middleware run
-in one chain, locale first. This is the one piece that has to be written
-carefully once; after that, nothing touches it.
+**Middleware composition:** one explicit chain — locale, then the auth
+redirect, then the CSP and security headers. This is the one piece that has to
+be written carefully once; after that, nothing touches it.
+
+Each step depends on the one before it:
+
+1. **Locale** runs first because the later steps need the language. next-intl
+   may answer with a redirect of its own (`/en` normalizes to `/`), and it
+   rewrites `/sign-in` to the internal `/en/sign-in`, so anything reading the
+   path afterwards would read the rewritten one — the auth step works from
+   `request.nextUrl` for that reason.
+2. **Auth redirect** runs second because it builds a localized URL: a Spanish
+   visitor must land on `/es/sign-in`, not `/sign-in`. It is skipped when step
+   1 already produced a redirect, since that response comes back through the
+   middleware and gets checked then.
+3. **CSP and security headers** run last because they decorate whatever the
+   first two produced, redirects included — a redirect still needs HSTS and
+   nosniff.
+
+The nonce is the exception to the ordering, and the part most likely to be
+broken by a later edit: its *value* is minted at the top, before step 1, even
+though it is applied in step 3. Next stamps the nonce onto its script tags by
+reading it from the **request** headers, and next-intl copies those headers
+onto the response it builds in step 1. Mint it in step 3 and it never reaches
+the request, so no script tag ever carries it.
+
+The auth step checks only that a session cookie is *present*. It does not
+validate it, because that is a database round trip on every request in the edge
+runtime and it would buy nothing — middleware is UX, and the page's own
+`requireSession()` is the boundary. Route groups do not appear in the URL, so
+membership of `(app)` is declared as an explicit prefix list in
+`lib/routes.ts`; a route added there without an entry is still safe, just not
+redirected early.
+
+**On the file name:** Next 16.3 deprecates `middleware.ts` in favour of
+`proxy.ts` and warns on every build. It is a rename with the same API
+(`npx @next/codemod middleware-to-proxy`). This document and the code both
+still say middleware; change them together or not at all.
+
+**Known issue: the 404 is not translated.** An unmatched URL matches no route,
+so Next falls back to the root `app/not-found.tsx`, which sits outside
+`[locale]`. `/es/nope` therefore answers in English with `lang="en"`, and
+`app/[locale]/not-found.tsx` never renders at all.
+
+The usual remedy — an `app/[locale]/[...rest]/page.tsx` that calls
+`notFound()` — does not work under `cacheComponents`, and was tried and
+reverted. Two things go wrong. The catch-all always throws, so Next cannot
+validate its `instant` contract, which `export const instant = false` settles.
+What it does not settle is the boundary render: reaching
+`[locale]/not-found.tsx` re-renders `[locale]/layout.tsx`, whose
+`await params` is runtime data on a route that matched nothing, so the layout
+fails to prerender and Next serves an empty error shell — strictly worse than
+an English page.
+
+A real fix has to let `[locale]/layout.tsx` render without a statically known
+`params`, and it needs the layout for `<html lang>`. Worth solving; not worth
+shipping a blank page over.
+
+`app/global-error.tsx` is a separate and deliberate exception: it replaces the
+root layout when a layout throws, so it must not depend on next-intl
+resolving, since next-intl may be what threw.
 
 **Adding a locale is two edits.** A new `messages/<locale>.json` and one entry
 in `routing.ts`. No new routes, no new components, no per-locale branches
@@ -624,7 +717,7 @@ The middleware already runs for locale handling, so the marginal cost of
 adding a nonce-based Content Security Policy there is small. The baseline:
 
 ```
-Content-Security-Policy      script-src 'self' 'nonce-<generated>' 'strict-dynamic'
+Content-Security-Policy      script-src 'self' 'nonce-<generated>'
 Strict-Transport-Security    max-age=63072000; includeSubDomains; preload
 X-Content-Type-Options       nosniff
 Referrer-Policy              strict-origin-when-cross-origin
@@ -634,6 +727,39 @@ X-Frame-Options / frame-ancestors 'none'
 
 `frame-ancestors` is the clickjacking defense; set it to `'none'` unless the
 app is meant to be embedded.
+
+**`strict-dynamic` is deliberately absent, and cannot be added while
+`cacheComponents` is on.** The two are incompatible, which is not obvious until
+the app fails to boot:
+
+`strict-dynamic` tells the browser to ignore every host-source expression,
+`'self'` included, and to execute only scripts carrying the nonce. Next stamps
+that nonce onto its script tags by reading it from the request's CSP header —
+which exists only for HTML rendered per request. With `cacheComponents` enabled
+the shells are prerendered at build time, when there is no request and no
+nonce, so their script tags ship without one. Under `strict-dynamic` every
+script on a prerendered page is then refused and nothing runs. Verified against
+a build: a fully dynamic route gets nonced tags, a prerendered or partially
+prerendered one does not.
+
+Without `strict-dynamic`, `'self'` and the nonce are alternatives rather than
+one overriding the other. Prerendered tags are allowed by `'self'`, dynamic
+ones by either, and — the part that actually stops XSS — an injected inline
+script is still refused, because there is no `'unsafe-inline'` and the nonce
+cannot be guessed. What is given up is `strict-dynamic`'s real job: letting one
+trusted script pull in others without maintaining a host allowlist. A project
+that loads no third-party scripts has no allowlist to maintain and loses
+nothing.
+
+The nonce is still generated and still plumbed through, because it is what
+makes any future inline script safe to add, and because the cost is one line.
+
+Getting `strict-dynamic` back means rendering every page dynamically
+(`export const instant = false` throughout), which is the opposite of what
+enabling `cacheComponents` was for. If a project genuinely needs it — a CMS
+embed, a tag manager, anything that injects scripts at runtime — that is the
+trade to make consciously, in a pull request, not by adding the token and
+assuming it works.
 
 **The CSP is enforced, not report-only.** A fresh project loads no third-party
 scripts, so there is nothing for it to break. The first time it does break will
@@ -652,6 +778,19 @@ stops a database URL from being inlined into a bundle.
 
 - `NEXT_PUBLIC_` means public. Anything under that prefix is in the browser
   bundle and readable by anyone.
+- **Edge code imports `@repo/env/edge`, never `@repo/env`.** The main schema
+  declares `DATABASE_URL` and `BETTER_AUTH_SECRET` as required, so importing it
+  from the middleware drags the whole server schema into the edge bundle: the
+  middleware then refuses to start without a database URL it never uses, and a
+  secret sits one bundling mistake away from a runtime it does not belong in.
+  The edge schema carries only what edge code may read, and everything in it
+  has a default so it validates with nothing set. The same split exists in
+  `@repo/auth/edge`, for the same reason.
+- The root `.env` is loaded by `@repo/env` itself, using `process.loadEnvFile`
+  with no imports so the module stays edge-safe. One file at the repository
+  root serves the app, drizzle-kit, the tests and the scripts, each of which
+  runs with a different working directory. Values already in the environment
+  win, so a deployment's real variables are never shadowed.
 - The seed script asserts that the connection host is local before it runs.
   Seeding a client's production database is a one-line mistake otherwise.
 - `db:push` and Drizzle Studio never point at production.
@@ -669,17 +808,41 @@ stack traces and the parsed input are never echoed back.
 
 - Sign-in and password reset respond identically whether or not the account
   exists. A helpful "no account with that email" is a user enumeration oracle.
-- Auth events are logged from day one: sign-in, failed sign-in, password
-  change, email change, session revocation. The full audit log can wait; these
+- Auth events are logged from day one. The full audit log can wait; these
   cannot, because without them there is nothing to investigate afterwards.
+  Written today: **sign-in, failed sign-in, password change**. The
+  `auth_event_type` enum also declares `email_change` and `session_revoked`,
+  because adding a value to a Postgres enum later is a migration, and an audit
+  log missing events for the weeks nobody noticed is the failure this table
+  exists to prevent. Wire them up with the features that raise them.
+- Events are written in one Better Auth `after` hook rather than at each call
+  site, so a new sign-in path cannot be added without one. The hook reads
+  `context.returned`: a rejected endpoint reaches it carrying an `APIError`,
+  which is what makes a failed sign-in observable at all. It never throws —
+  refusing to authenticate a legitimate user because an audit insert timed out
+  is the wrong trade.
+- A failed sign-in is logged with a **null** user id, deliberately. Resolving
+  the submitted email to an account would mean an existence check on every
+  failed attempt, which is precisely the enumeration oracle the sign-in
+  response is careful not to be. The IP, user agent and timestamp are what a
+  credential-stuffing investigation actually reads.
 - Each event stores user id, event type, timestamp, IP and user agent, and is
-  deleted automatically after 90 days by a scheduled job. Full IPs, not hashed:
-  a hash cannot tell you the login came from a different country, which is the
-  question you actually ask during an incident. The retention window is what
-  keeps this proportionate, and it is short enough to state plainly in a
-  client's privacy policy.
-- Sessions are httpOnly, secure and `sameSite: lax`. Password changes revoke
-  other sessions.
+  deleted after 90 days. Full IPs, not hashed: a hash cannot tell you the login
+  came from a different country, which is the question you actually ask during
+  an incident. The retention window is what keeps this proportionate, and it is
+  short enough to state plainly in a client's privacy policy.
+  `purgeExpiredAuthEvents()` exists; **there is no scheduler calling it yet**,
+  so until one exists the retention promise is manual.
+- IPs are recorded only when trustworthy. Better Auth discards a multi-hop
+  `X-Forwarded-For` rather than believing it, because every value in it can be
+  set by the client. Behind a load balancer, set
+  `advanced.ipAddress.trustedProxies` or the column stays null in production.
+- Sessions are httpOnly, `sameSite: lax`, and `secure` derived from the
+  scheme in `BETTER_AUTH_URL` — hardcoding `secure: true` means the browser
+  drops the cookie over plain-http localhost and sign-in appears to do nothing.
+- **Password changes do not yet revoke other sessions.** Better Auth takes
+  `revokeOtherSessions` as a caller-supplied flag on `changePassword`, so this
+  lands with the change-password UI.
 
 ### Supply chain
 
@@ -804,9 +967,17 @@ Start with 1, move to 2 when the manual steps become annoying.
 ## 15. Roadmap
 
 **v0.1 — foundation**
-Monorepo, Next.js app, Drizzle + Supabase, Better Auth (email + Google),
+Monorepo, Next.js app, Drizzle + Supabase, Better Auth (email + password),
 Tailwind v4 + Untitled UI, next-intl with en/es routing, Biome, CI,
 env validation, security headers and auth event logging.
+
+Built so far: monorepo and tooling, `packages/env`, `packages/db` with
+migrations, `packages/auth`, `packages/ui` (Untitled UI base components, the
+theme, the Hugeicons adapter), and `apps/web` with the middleware chain, the
+`[locale]` segment, sign-in and sign-up on the shared components; the CI
+pipeline with the transactional Vitest harness, and Playwright on
+`deployment_status`. Still outstanding in v0.1: Google sign-in, Sentry, and
+the retention job for auth events.
 
 **v0.2 — the reference feature**
 Full `projects` CRUD end to end, shared data table, seed data, unit + E2E

@@ -65,6 +65,12 @@ These are non-negotiable. Violating one means the change gets rejected.
    data takes the user id as a parameter and puts it in the tag. Getting this
    wrong serves one user's data to another.
 
+   The other half of `cacheComponents`: reading `cookies()`, `headers()`,
+   `params`, `searchParams` or the session **outside a `<Suspense>` boundary is
+   a build error**. Render a static shell, put the request-dependent part
+   behind a boundary. `export const instant = false` exists for a page that
+   genuinely cannot be split — not for silencing the error.
+
 7. **Server Components by default.** Add `"use client"` only when the component
    needs state, effects, browser APIs or event handlers. Push the directive as
    far down the tree as possible — a client leaf inside a server page, not a
@@ -96,7 +102,21 @@ These are non-negotiable. Violating one means the change gets rejected.
 
 14. **Never write secrets or environment variables inline.** Everything comes
    from `@repo/env`, which validates at boot. Adding a variable means adding it
-   to the schema and to `.env.example` in the same change.
+   to the schema and to `.env.example` in the same change. Edge code —
+   `middleware.ts` and anything it imports — uses `@repo/env/edge` instead;
+   importing the main schema there makes `DATABASE_URL` a startup requirement
+   for the middleware and puts a secret one bundling mistake from the wrong
+   runtime.
+
+15. **Auth goes through `@repo/auth`, never `better-auth` directly.** That one
+   indirection is what makes auth replaceable. The app has `@repo/auth` and
+   `@repo/auth/edge`; if something you need is not exported, export it there
+   rather than reaching past it.
+
+16. **Never call `auth.api.*` to perform a mutation.** Rate limiting and the
+   origin check live in Better Auth's router, so a direct call skips both —
+   sign-in becomes unlimited. Use `callAuthEndpoint`, which dispatches through
+   the HTTP handler and forwards the cookies it returns.
 
 ---
 
@@ -224,8 +244,18 @@ Full rules live in `packages/ui/AGENTS.md`. The three that matter everywhere:
 
 ## Internationalization
 
-Every user-facing string is translated. There are no exceptions, including
-error messages, empty states, toasts, button labels and email subjects.
+Every user-facing string is translated, including error messages, empty states,
+toasts, button labels and email subjects.
+
+One exception, and one known bug. The exception is `app/global-error.tsx`: it
+replaces the root layout when a layout itself throws, so it must not depend on
+next-intl resolving — next-intl may be what threw. Do not add a second.
+
+The bug is `app/not-found.tsx`, which answers every 404 in English because the
+translated `[locale]/not-found.tsx` is unreachable. A `[locale]/[...rest]`
+catch-all is the usual fix and does not work here — see ARCHITECTURE.md §7
+before attempting it, because the obvious version renders a blank error shell
+and is worse than what is there now.
 
 - **No hardcoded strings in JSX.** Use `useTranslations("<feature>")` in client
   components and `getTranslations` in server components.
@@ -271,9 +301,40 @@ Common mistakes that look reasonable but violate the architecture:
   usually pointing at a real design problem.
 - Editing files under `packages/db/migrations/` after they have been applied.
   Generate a new migration instead.
+- Adding `'strict-dynamic'` to the CSP. It makes the browser ignore `'self'`,
+  and Next can only nonce script tags on a route it renders per request — so
+  with `cacheComponents` prerendering the shells it blocks every script on a
+  prerendered page and the app does not boot. See ARCHITECTURE.md §10.
+- Reading `searchParams` or the session at the top of a page instead of inside
+  a `<Suspense>` boundary, then reaching for `instant = false` when the build
+  complains.
+- Using bare `next/link` or `next/navigation`. Import `Link` and `redirect`
+  from `@/i18n/navigation`, or the locale prefix is dropped and a Spanish user
+  is silently returned to English.
+- Writing a translated string in an action or a schema. Actions have no locale:
+  they return message *keys*, and the component renders them.
 - Writing a visible string directly in JSX "just for now". It never gets
   translated later.
 - Storing a translated label in a database column that the UI renders as-is.
+
+---
+
+## Testing
+
+- **Pure logic gets a plain Vitest test.** No database, no mocks of `db`.
+- **Anything that reads or writes the database calls `setupTestTransaction()`**
+  from `@repo/db/testing` at the top of the file. Every test then runs inside a
+  transaction that is rolled back, so tests share one migrated database without
+  sharing state. The code under test keeps importing `db` from `@repo/db` — the
+  project's Vitest setup file points it at the open transaction. Do not
+  truncate tables, do not create per-test schemas, do not mock `db` by hand.
+- **Skipped locally, enforced in CI.** With no Postgres reachable the database
+  tests skip with a warning; in CI they fail. A green run on a machine without
+  a database is not a green run.
+- **One Playwright spec per main user flow**, in `e2e/`, written against roles
+  and accessible names (`getByRole("textbox", { name: "Email" })`), not CSS
+  classes or label text. It runs against the preview deployment, not in the CI
+  sequence.
 
 ---
 

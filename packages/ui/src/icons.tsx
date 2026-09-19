@@ -1,5 +1,6 @@
 import {
   ArrowDown01Icon,
+  ArrowDown02Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Cancel01Icon,
@@ -7,7 +8,10 @@ import {
   HelpCircleIcon,
   InformationCircleIcon,
   Logout01Icon,
+  Search01Icon,
+  Tick02Icon,
   UnfoldMoreIcon,
+  UserIcon,
   ViewIcon,
   ViewOffIcon,
 } from "@hugeicons/core-free-icons";
@@ -57,8 +61,12 @@ export const EyeOff = createIcon("EyeOff", ViewOffIcon);
 export const HelpCircle = createIcon("HelpCircle", HelpCircleIcon);
 export const InfoCircle = createIcon("InfoCircle", InformationCircleIcon);
 
-// Tables
-export const ArrowDown = createIcon("ArrowDown", ArrowDown01Icon);
+// Tables, selects and dialogs
+export const ArrowDown = createIcon("ArrowDown", ArrowDown02Icon);
+export const ChevronDown = createIcon("ChevronDown", ArrowDown01Icon);
+export const Check = createIcon("Check", Tick02Icon);
+export const SearchLg = createIcon("SearchLg", Search01Icon);
+export const User01 = createIcon("User01", UserIcon);
 export const ChevronSelectorVertical = createIcon("ChevronSelectorVertical", UnfoldMoreIcon);
 export const X = createIcon("X", Cancel01Icon);
 

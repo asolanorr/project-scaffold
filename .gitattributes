@@ -1,0 +1,4 @@
+# Biome writes LF; keep the working copy that way on every OS so `git diff`
+# shows changes, not line endings.
+* text=auto eol=lf
+*.woff2 binary

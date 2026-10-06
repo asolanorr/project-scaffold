@@ -1,14 +1,18 @@
 import {
   Add01Icon,
+  AlertCircleIcon,
   ArrowDown01Icon,
   ArrowDown02Icon,
   ArrowLeft01Icon,
   ArrowRight01Icon,
   Cancel01Icon,
+  CloudUploadIcon,
+  File02Icon,
   GoogleIcon,
   HelpCircleIcon,
   InformationCircleIcon,
   Logout01Icon,
+  RefreshCwIcon,
   Search01Icon,
   Tick02Icon,
   UnfoldMoreIcon,
@@ -77,3 +81,9 @@ export const ArrowLeft = createIcon("ArrowLeft", ArrowLeft01Icon);
 export const ArrowRight = createIcon("ArrowRight", ArrowRight01Icon);
 export const LogOut = createIcon("LogOut", Logout01Icon);
 export const Google = createIcon("Google", GoogleIcon);
+
+// File upload
+export const UploadCloud = createIcon("UploadCloud", CloudUploadIcon);
+export const File = createIcon("File", File02Icon);
+export const AlertCircle = createIcon("AlertCircle", AlertCircleIcon);
+export const RefreshCw = createIcon("RefreshCw", RefreshCwIcon);

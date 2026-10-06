@@ -22,6 +22,27 @@
       "when": 1789846525229,
       "tag": "0002_user_locale",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1789853024574,
+      "tag": "0003_files",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1789853025749,
+      "tag": "0004_storage_uploads",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791265487117,
+      "tag": "0005_familiar_solo",
+      "breakpoints": true
     }
   ]
 }

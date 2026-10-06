@@ -79,6 +79,24 @@ export const env = createEnv({
     // never off in production.
     REQUIRE_EMAIL_VERIFICATION: z.stringbool().default(true),
 
+    // Supabase project URL (`https://<ref>.supabase.co`) and the service role
+    // key, used by @repo/storage to mint signed upload URLs and to read
+    // object metadata. The service role bypasses Row Level Security — never
+    // send it to the browser; everything the client gets is a signed URL for
+    // one object, scoped and time-limited. Optional outside production: local
+    // development and CI run without Supabase Storage and use the fake
+    // provider from @repo/storage/testing instead.
+    SUPABASE_URL: z.url().optional(),
+    SUPABASE_SERVICE_ROLE_KEY: z.string().min(1).optional(),
+
+    // Stripe, used by @repo/payments. The secret key creates Checkout
+    // Sessions; the webhook secret verifies the signature on every event
+    // before a byte of its body is trusted. Optional outside production:
+    // local development and CI run without Stripe and use the fake provider
+    // from @repo/payments/testing instead.
+    STRIPE_SECRET_KEY: z.string().min(1).optional(),
+    STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
+
     // CSP_REPORT_ONLY is deliberately not here — it is read by the middleware,
     // which runs on the edge and must not import this schema. See ./edge.
   },
@@ -97,6 +115,10 @@ export const env = createEnv({
     RESEND_API_KEY: process.env.RESEND_API_KEY,
     EMAIL_FROM: process.env.EMAIL_FROM,
     REQUIRE_EMAIL_VERIFICATION: process.env.REQUIRE_EMAIL_VERIFICATION,
+    SUPABASE_URL: process.env.SUPABASE_URL,
+    SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
   },
   emptyStringAsUndefined: true,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
@@ -106,6 +128,24 @@ export const env = createEnv({
 // verify. Refuse to boot instead; the message names the variable.
 if (env.VERCEL_ENV === "production" && !env.RESEND_API_KEY && !process.env.SKIP_ENV_VALIDATION) {
   throw new Error("RESEND_API_KEY is required in production: sign-up sends verification email.");
+}
+if (
+  env.VERCEL_ENV === "production" &&
+  (!env.SUPABASE_URL || !env.SUPABASE_SERVICE_ROLE_KEY) &&
+  !process.env.SKIP_ENV_VALIDATION
+) {
+  throw new Error(
+    "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in production: file uploads need them.",
+  );
+}
+if (
+  env.VERCEL_ENV === "production" &&
+  (!env.STRIPE_SECRET_KEY || !env.STRIPE_WEBHOOK_SECRET) &&
+  !process.env.SKIP_ENV_VALIDATION
+) {
+  throw new Error(
+    "STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production: checkout and its webhook need them.",
+  );
 }
 
 /**

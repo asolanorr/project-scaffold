@@ -14,14 +14,12 @@ import { updateTag } from "next/cache";
 import { z } from "zod";
 import type { ActionState } from "@/lib/action-state";
 import { cacheTags } from "@/lib/cache-tags";
+import { isUniqueViolation } from "@/lib/db-errors";
 import { parseFormData } from "@/lib/form";
 import { messageKeys } from "@/lib/validation";
 import { type ProjectErrorCode, projectIdSchema } from "./schema";
 
 export type ProjectActionState = ActionState<ProjectView, ProjectErrorCode>;
-
-/** Postgres: unique_violation. Here that is always `projects_owner_name_uq`. */
-const UNIQUE_VIOLATION = "23505";
 
 //#region create
 export async function createProject(
@@ -169,19 +167,4 @@ export async function restoreProject(
     if (isUniqueViolation(error)) return { ok: false, code: "nameTaken" };
     throw error;
   }
-}
-
-/**
- * The one database failure a user can cause and fix: a duplicate name. It
- * becomes a code, and the error itself never leaves — a constraint name or a
- * stack trace is not something the browser should read. Anything else is a
- * bug and is rethrown for the error boundary and Sentry (rule 11).
- */
-function isUniqueViolation(error: unknown): boolean {
-  // Drizzle wraps the driver error in a DrizzleQueryError; the Postgres code
-  // is on the cause. Checked on both, so a driver that does not wrap still works.
-  return (
-    (error as { code?: unknown } | null)?.code === UNIQUE_VIOLATION ||
-    (error as { cause?: { code?: unknown } } | null)?.cause?.code === UNIQUE_VIOLATION
-  );
 }

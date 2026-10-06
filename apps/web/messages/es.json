@@ -166,5 +166,28 @@
       "title": "Algo salió mal",
       "description": "La página de proyectos tuvo un error. Inténtalo de nuevo y, si se repite, avísanos."
     }
+  },
+  "checkout": {
+    "success": {
+      "title": "Estado del pedido",
+      "backLink": "Volver al panel",
+      "notFoundTitle": "Pedido no encontrado",
+      "notFoundDescription": "No existe, o pertenece a otra persona.",
+      "status": {
+        "pending": "El pago todavía se está procesando. Esto puede tardar un momento — actualiza la página para comprobarlo de nuevo.",
+        "paid": "Pago recibido. ¡Gracias!",
+        "failed": "El pago falló. No se realizó ningún cargo.",
+        "expired": "La sesión de pago caducó antes de completarse.",
+        "refunded": "Este pedido fue reembolsado."
+      }
+    },
+    "cancel": {
+      "title": "Compra cancelada",
+      "description": "No se realizó ningún pago. Puedes intentarlo de nuevo cuando quieras.",
+      "backLink": "Volver al panel"
+    },
+    "errors": {
+      "priceNotFound": "Ese precio ya no está disponible."
+    }
   }
 }

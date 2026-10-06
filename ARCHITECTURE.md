@@ -116,6 +116,8 @@ scaffold/
 │   ├── auth/                     # Better Auth server config + client helpers
 │   ├── ui/                       # Untitled UI components, icons, Tailwind preset
 │   ├── email/                    # Resend transport, React Email templates, sendEmail()
+│   ├── storage/                  # Supabase Storage provider, signed uploads, mime sniffing
+│   ├── payments/                 # PaymentProvider interface + one adapter (§8)
 │   ├── env/                      # typed, validated environment variables
 │   └── config/                   # tsconfig, biome, tailwind base configs
 │
@@ -128,12 +130,14 @@ scaffold/
 ### Dependency rules (enforced by lint)
 
 ```
-apps/web        →  packages/db, auth, ui, env, config
-packages/auth   →  packages/db, email, env, config
-packages/email  →  packages/env, config
-packages/db     →  packages/env, config
-packages/ui     →  packages/config
-packages/env    →  (nothing internal)
+apps/web          →  packages/db, auth, ui, storage, payments, env, config
+packages/auth     →  packages/db, email, env, config
+packages/email    →  packages/env, config
+packages/storage  →  packages/env, config
+packages/payments →  packages/env, config
+packages/db       →  packages/env, config
+packages/ui       →  packages/config
+packages/env      →  (nothing internal)
 ```
 
 No package may import from `apps/`. No circular dependencies. `packages/ui`
@@ -1063,7 +1067,18 @@ password-changed, both locales), `users.locale` set at sign-up, verification
 required with 24-hour single-use links, the reset flow with 1-hour single-use
 tokens invalidated on use and on any password change, a separate rate limit
 on the endpoints that make the app send mail, sends deferred past the
-response with `after()`.
+response with `after()`. File uploads — `packages/storage` (Supabase Storage
+behind a `StorageProvider`, signed upload URLs, object keys never the client
+filename, a magic-byte mime re-check on confirm, Storage RLS policies scoped
+by path prefix), the `files` table (pending/ready, soft delete), a purge job
+for pending rows whose upload never arrived, and the `FileUpload` composition
+in `packages/ui` (progress, error and retry states). Payments —
+`packages/payments` (`PaymentProvider` interface with a Stripe adapter:
+Checkout Sessions, webhook signature verification, event-to-order mapping),
+the `orders` and `processed_events` tables, one `transitionOrder()` function
+gating every status change through a fixed transition table, the webhook
+route handler as the sole fulfiller, and a checkout success page that reads
+status from the database rather than trusting the redirect.
 
 **v0.5 — automation**
 `create-app` CLI, Renovate for dependency updates, release automation.

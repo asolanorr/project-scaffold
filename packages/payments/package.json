@@ -1,0 +1,25 @@
+{
+  "name": "@repo/payments",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./testing": "./src/testing.ts"
+  },
+  "scripts": {
+    "lint": "biome check .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@repo/env": "workspace:*",
+    "stripe": "23.0.0"
+  },
+  "devDependencies": {
+    "@repo/config": "workspace:*",
+    "@types/node": "24.13.4",
+    "typescript": "5.9.3",
+    "vitest": "3.2.7"
+  }
+}

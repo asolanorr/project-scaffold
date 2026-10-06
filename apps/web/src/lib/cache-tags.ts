@@ -26,6 +26,12 @@ export const cacheTags = {
   project: (projectId: string) => `project:${projectId}` as const,
   /** A user's own profile data. */
   user: (userId: string) => `user:${userId}` as const,
+  /** Every file belonging to one user. */
+  files: (userId: string) => `files:${userId}` as const,
+  /** One file, for its detail/download view. */
+  file: (fileId: string) => `file:${fileId}` as const,
+  /** One order, for the checkout success page. */
+  order: (orderId: string) => `order:${orderId}` as const,
 } as const;
 
 export type CacheTag = ReturnType<(typeof cacheTags)[keyof typeof cacheTags]>;

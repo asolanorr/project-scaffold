@@ -8,6 +8,17 @@ const base = {
   BETTER_AUTH_SECRET: "test-secret-at-least-thirty-two-characters",
 };
 
+// Every optional-but-production-required secret, satisfied — so a test
+// about something else (origins, BETTER_AUTH_URL) does not also have to
+// know about each one individually to reach "production" without throwing.
+const productionSecrets = {
+  RESEND_API_KEY: "re_test",
+  SUPABASE_URL: "https://proj.supabase.co",
+  SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+  STRIPE_SECRET_KEY: "sk_test",
+  STRIPE_WEBHOOK_SECRET: "whsec_test",
+};
+
 async function load(overrides: Record<string, string | undefined>) {
   vi.resetModules();
   for (const key of [
@@ -17,6 +28,10 @@ async function load(overrides: Record<string, string | undefined>) {
     "VERCEL_BRANCH_URL",
     "VERCEL_PROJECT_PRODUCTION_URL",
     "RESEND_API_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "STRIPE_SECRET_KEY",
+    "STRIPE_WEBHOOK_SECRET",
   ]) {
     vi.stubEnv(key, "");
   }
@@ -50,7 +65,7 @@ describe("BETTER_AUTH_URL on Vercel", () => {
       VERCEL_ENV: "production",
       VERCEL_URL: "web-abc123-team.vercel.app",
       VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
-      RESEND_API_KEY: "re_test",
+      ...productionSecrets,
     });
 
     expect(env.BETTER_AUTH_URL).toBe("https://web.vercel.app");
@@ -61,7 +76,7 @@ describe("BETTER_AUTH_URL on Vercel", () => {
       BETTER_AUTH_URL: "https://app.example.com",
       VERCEL_ENV: "production",
       VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
-      RESEND_API_KEY: "re_test",
+      ...productionSecrets,
     });
 
     expect(env.BETTER_AUTH_URL).toBe("https://app.example.com");
@@ -89,6 +104,48 @@ describe("RESEND_API_KEY", () => {
   });
 });
 
+describe("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY", () => {
+  it("are required together in production, because file uploads need both", async () => {
+    await expect(
+      load({
+        VERCEL_ENV: "production",
+        VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
+        RESEND_API_KEY: "re_test",
+        STRIPE_SECRET_KEY: "sk_test",
+        STRIPE_WEBHOOK_SECRET: "whsec_test",
+      }),
+    ).rejects.toThrow("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are required in production");
+  });
+
+  it("are optional everywhere else", async () => {
+    const { env } = await load({ VERCEL_ENV: "preview", VERCEL_URL: "web-abc.vercel.app" });
+
+    expect(env.SUPABASE_URL).toBeUndefined();
+    expect(env.SUPABASE_SERVICE_ROLE_KEY).toBeUndefined();
+  });
+});
+
+describe("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET", () => {
+  it("are required together in production, because checkout and its webhook need both", async () => {
+    await expect(
+      load({
+        VERCEL_ENV: "production",
+        VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
+        RESEND_API_KEY: "re_test",
+        SUPABASE_URL: "https://proj.supabase.co",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+      }),
+    ).rejects.toThrow("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production");
+  });
+
+  it("are optional everywhere else", async () => {
+    const { env } = await load({ VERCEL_ENV: "preview", VERCEL_URL: "web-abc.vercel.app" });
+
+    expect(env.STRIPE_SECRET_KEY).toBeUndefined();
+    expect(env.STRIPE_WEBHOOK_SECRET).toBeUndefined();
+  });
+});
+
 describe("deploymentOrigins", () => {
   it("lists the explicit origin plus every Vercel host, once each", async () => {
     const { deploymentOrigins } = await load({
@@ -96,7 +153,7 @@ describe("deploymentOrigins", () => {
       VERCEL_ENV: "production",
       VERCEL_URL: "web-abc123-team.vercel.app",
       VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
-      RESEND_API_KEY: "re_test",
+      ...productionSecrets,
     });
 
     expect(deploymentOrigins()).toEqual([

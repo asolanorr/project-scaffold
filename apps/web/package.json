@@ -17,6 +17,8 @@
     "@repo/auth": "workspace:*",
     "@repo/db": "workspace:*",
     "@repo/env": "workspace:*",
+    "@repo/payments": "workspace:*",
+    "@repo/storage": "workspace:*",
     "@repo/ui": "workspace:*",
     "drizzle-orm": "0.45.2",
     "next": "16.3.5",

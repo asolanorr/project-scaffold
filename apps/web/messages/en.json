@@ -166,5 +166,28 @@
       "title": "Something went wrong",
       "description": "The projects page hit an error. Try again, and if it keeps happening, tell us."
     }
+  },
+  "checkout": {
+    "success": {
+      "title": "Order status",
+      "backLink": "Back to dashboard",
+      "notFoundTitle": "Order not found",
+      "notFoundDescription": "It does not exist, or it belongs to someone else.",
+      "status": {
+        "pending": "Payment is still processing. This can take a moment — refresh to check again.",
+        "paid": "Payment received. Thank you!",
+        "failed": "The payment failed. No charge was made.",
+        "expired": "The checkout session expired before payment completed.",
+        "refunded": "This order was refunded."
+      }
+    },
+    "cancel": {
+      "title": "Checkout canceled",
+      "description": "No payment was made. You can try again whenever you are ready.",
+      "backLink": "Back to dashboard"
+    },
+    "errors": {
+      "priceNotFound": "That price is no longer available."
+    }
   }
 }

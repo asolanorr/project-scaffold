@@ -20,6 +20,7 @@
     "@repo/payments": "workspace:*",
     "@repo/storage": "workspace:*",
     "@repo/ui": "workspace:*",
+    "@sentry/nextjs": "11.4.0",
     "drizzle-orm": "0.45.2",
     "next": "16.3.5",
     "next-intl": "4.14.4",

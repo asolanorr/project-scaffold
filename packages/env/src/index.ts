@@ -97,6 +97,17 @@ export const env = createEnv({
     STRIPE_SECRET_KEY: z.string().min(1).optional(),
     STRIPE_WEBHOOK_SECRET: z.string().min(1).optional(),
 
+    // Shared secret Vercel Cron sends as `Authorization: Bearer $CRON_SECRET`
+    // when it invokes a job route. Self-generated, no external account — like
+    // BETTER_AUTH_SECRET, required everywhere rather than production-only, so
+    // a job route can never be deployed reachable with no check at all.
+    CRON_SECRET: z.string().min(16),
+
+    // Sentry project DSN. Optional outside production: a job failure always
+    // logs to the console either way (see apps/web/src/jobs/run-job.ts) —
+    // this only adds the alert.
+    SENTRY_DSN: z.url().optional(),
+
     // CSP_REPORT_ONLY is deliberately not here — it is read by the middleware,
     // which runs on the edge and must not import this schema. See ./edge.
   },
@@ -119,6 +130,8 @@ export const env = createEnv({
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY,
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+    CRON_SECRET: process.env.CRON_SECRET,
+    SENTRY_DSN: process.env.SENTRY_DSN,
   },
   emptyStringAsUndefined: true,
   skipValidation: !!process.env.SKIP_ENV_VALIDATION,
@@ -145,6 +158,11 @@ if (
 ) {
   throw new Error(
     "STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are required in production: checkout and its webhook need them.",
+  );
+}
+if (env.VERCEL_ENV === "production" && !env.SENTRY_DSN && !process.env.SKIP_ENV_VALIDATION) {
+  throw new Error(
+    "SENTRY_DSN is required in production: a job failure must raise an alert, not just a log line.",
   );
 }
 

@@ -6,6 +6,9 @@ const base = {
   DATABASE_URL: "postgres://test:test@localhost:6543/test",
   DIRECT_URL: "postgres://test:test@localhost:5432/test",
   BETTER_AUTH_SECRET: "test-secret-at-least-thirty-two-characters",
+  // Required unconditionally, like BETTER_AUTH_SECRET — not one of the
+  // optional-but-production-required secrets below.
+  CRON_SECRET: "test-secret-at-least-sixteen-characters",
 };
 
 // Every optional-but-production-required secret, satisfied — so a test
@@ -17,6 +20,7 @@ const productionSecrets = {
   SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
   STRIPE_SECRET_KEY: "sk_test",
   STRIPE_WEBHOOK_SECRET: "whsec_test",
+  SENTRY_DSN: "https://examplePublicKey@o0.ingest.sentry.io/0",
 };
 
 async function load(overrides: Record<string, string | undefined>) {
@@ -32,6 +36,7 @@ async function load(overrides: Record<string, string | undefined>) {
     "SUPABASE_SERVICE_ROLE_KEY",
     "STRIPE_SECRET_KEY",
     "STRIPE_WEBHOOK_SECRET",
+    "SENTRY_DSN",
   ]) {
     vi.stubEnv(key, "");
   }
@@ -143,6 +148,34 @@ describe("STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET", () => {
 
     expect(env.STRIPE_SECRET_KEY).toBeUndefined();
     expect(env.STRIPE_WEBHOOK_SECRET).toBeUndefined();
+  });
+});
+
+describe("CRON_SECRET", () => {
+  it("is required everywhere, not just in production", async () => {
+    await expect(load({ CRON_SECRET: "" })).rejects.toThrow("Invalid environment variables");
+  });
+});
+
+describe("SENTRY_DSN", () => {
+  it("is required in production, because a job failure must raise an alert", async () => {
+    await expect(
+      load({
+        VERCEL_ENV: "production",
+        VERCEL_PROJECT_PRODUCTION_URL: "web.vercel.app",
+        RESEND_API_KEY: "re_test",
+        SUPABASE_URL: "https://proj.supabase.co",
+        SUPABASE_SERVICE_ROLE_KEY: "service-role-key",
+        STRIPE_SECRET_KEY: "sk_test",
+        STRIPE_WEBHOOK_SECRET: "whsec_test",
+      }),
+    ).rejects.toThrow("SENTRY_DSN is required in production");
+  });
+
+  it("is optional everywhere else", async () => {
+    const { env } = await load({ VERCEL_ENV: "preview", VERCEL_URL: "web-abc.vercel.app" });
+
+    expect(env.SENTRY_DSN).toBeUndefined();
   });
 });
 

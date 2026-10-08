@@ -102,4 +102,26 @@ describe("purgeStalePendingFiles", () => {
     const [row] = await db.select().from(files).where(eq(files.id, old.id));
     expect(row?.deletedAt).toBeInstanceOf(Date);
   });
+
+  // Required case: once a row is soft-deleted, a second run in the same
+  // window finds nothing left to purge.
+  it("is idempotent: a second run in the same window does nothing", async () => {
+    await insertPending({ createdAt: new Date(Date.now() - PENDING_UPLOAD_WINDOW_MS - 60_000) });
+    await purgeStalePendingFiles();
+
+    const second = await purgeStalePendingFiles();
+
+    expect(second).toBe(0);
+  });
+
+  // Required case: a batch cap bounds a single invocation, however large the
+  // backlog, and a second call picks up the rest.
+  it("caps a single run at the given batch size", async () => {
+    const old = new Date(Date.now() - PENDING_UPLOAD_WINDOW_MS - 60_000);
+    for (let i = 0; i < 5; i++) await insertPending({ createdAt: old });
+
+    expect(await purgeStalePendingFiles(new Date(), 3)).toBe(3);
+    expect(await purgeStalePendingFiles(new Date(), 3)).toBe(2);
+    expect(await purgeStalePendingFiles(new Date(), 3)).toBe(0);
+  });
 });

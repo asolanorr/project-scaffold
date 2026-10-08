@@ -16,6 +16,7 @@ export default defineConfig({
     env: {
       BETTER_AUTH_SECRET: "test-secret-at-least-thirty-two-characters",
       BETTER_AUTH_URL: "http://localhost:3000",
+      CRON_SECRET: "test-secret-at-least-sixteen-characters",
     },
   },
   resolve: {

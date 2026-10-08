@@ -1,26 +1,48 @@
 ---
 title: Add a background job
-description: Planned for v0.4 — what exists today for scheduled work, and the shape jobs will take.
+description: Vercel Cron hitting a shared, authenticated route handler — the smallest correct version, built in v0.4.
 ---
 
-<Callout type="warn" title="Partly built">
-  There is no job runner yet (v0.4). What exists is the pattern for scheduled
-  cleanup — a pure function in a package, callable from wherever the schedule
-  lives — and one such function is already written for the auth event log.
+<Callout type="info" title="Built for scheduled cleanup; not a job queue">
+  This covers the shape that exists today — Vercel Cron, a shared wrapper, a
+  plain idempotent function per job. For work that outlives a request (an
+  export, a batch of emails), see "The shape for real jobs" below, which is
+  not built yet.
 </Callout>
 
-## What exists: a scheduled function
+## What exists: Vercel Cron on a shared wrapper
 
-`packages/auth` exports `purgeExpiredAuthEvents()`, which deletes auth events
-older than the retention window. It is a plain async function with no
-knowledge of what calls it:
+Every job is a route handler under `apps/web/src/app/api/jobs/<name>/`, kept
+thin — it only re-exports `GET` from a same-named file in
+`apps/web/src/jobs/`, which builds the handler with the one shared wrapper:
 
-<include lang="ts" meta='title="packages/auth/src/events.ts"'>../../../../../packages/auth/src/events.ts#purge</include>
+<include lang="ts" meta='title="apps/web/src/jobs/run-job.ts"'>../../../../../apps/web/src/jobs/run-job.ts#run</include>
 
-Wiring it to a schedule is the outstanding v0.1 item. On Vercel the smallest
-correct version is a Cron Job hitting a route handler that verifies the
-`CRON_SECRET` header before calling the function — a route handler, because
-this is an external trigger, which is the one case route handlers exist for.
+The wrapper verifies the `Authorization: Bearer $CRON_SECRET` header,
+answering 401 before anything else runs; logs the start and the outcome; caps
+the batch a single call may touch at `MAX_JOB_BATCH_SIZE`; and reports a
+thrown error to Sentry so a failure is an alert, not a silent 500.
+
+`run` itself is a plain function with no knowledge of HTTP or the schedule —
+`purgeStalePendingFiles()` in `apps/web/src/features/files/purge.ts` deletes
+pending file rows whose upload window has passed, taking a limit and
+returning how many rows it touched:
+
+<include lang="ts" meta='title="apps/web/src/features/files/purge.ts"'>../../../../../apps/web/src/features/files/purge.ts#purge</include>
+
+This is also why `audit_log` (see "Audit log" in ARCHITECTURE.md §10) has no
+retention job of its own: a time-based delete and an append-only table are
+mutually exclusive, and the audit log chose append-only.
+
+Idempotent by construction: once every row past the cutoff is gone, the next
+call's `WHERE` matches nothing. A backlog bigger than the batch cap clears
+over several ticks of the schedule in `apps/web/vercel.json`, not in one call
+that risks the function timeout.
+
+Add a third job the same way: a plain function that takes a limit and
+returns a count, a one-line file in `apps/web/src/jobs/` building the handler
+with `createCronJobHandler`, a thin route re-exporting `GET`, and an entry in
+`vercel.json`.
 
 ## The shape for real jobs
 

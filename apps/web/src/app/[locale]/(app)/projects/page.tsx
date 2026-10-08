@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { ProjectsList } from "@/features/projects/components/projects-list";
 import { ProjectsListSkeleton } from "@/features/projects/components/skeletons";
 import { resolveLocale } from "@/lib/locale";
+import { PROJECTS_NEW_PATH } from "@/lib/routes";
 
 export default async function ProjectsPage({
   params,
@@ -22,7 +23,7 @@ export default async function ProjectsPage({
           <h1 className="text-display-xs font-semibold text-primary">{t("title")}</h1>
           <p className="text-md text-tertiary">{t("description")}</p>
         </div>
-        <Button href="/projects/new">{t("new")}</Button>
+        <Button href={PROJECTS_NEW_PATH}>{t("new")}</Button>
       </header>
 
       {/* The heading prerenders; the session and the search params are

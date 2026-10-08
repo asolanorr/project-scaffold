@@ -118,6 +118,16 @@ These are non-negotiable. Violating one means the change gets rejected.
    sign-in becomes unlimited. Use `callAuthEndpoint`, which dispatches through
    the HTTP handler and forwards the cookies it returns.
 
+17. **Internal links and redirects come from `lib/routes.ts`, never a
+   hand-written string.** A path literal in JSX or in a router call is a
+   review blocker. Every exported path there is checked against Next's
+   generated route types — delete the page and the constant fails to compile
+   — but only because nothing else writes a path of its own for that check to
+   bypass. A `Button`/`Link` href, a `router.push`/`replace`/`prefetch` call,
+   a `redirect()`, a `localizedPath()` call: all take their path from
+   `lib/routes.ts`. A dynamic segment goes through a helper function exported
+   from there (`projectPath(id)`, not a template literal at the call site).
+
 ---
 
 ## The canonical mutation

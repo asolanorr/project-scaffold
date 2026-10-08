@@ -3,6 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { signUpAction } from "@/features/auth/actions";
 import { AuthForm } from "@/features/auth/components/auth-form";
 import { resolveLocale } from "@/lib/locale";
+import { SIGN_IN_PATH } from "@/lib/routes";
 
 export default async function SignUpPage({ params }: { params: Promise<{ locale: string }> }) {
   setRequestLocale(await resolveLocale(params));
@@ -19,7 +20,7 @@ export default async function SignUpPage({ params }: { params: Promise<{ locale:
 
       <p className="text-center text-sm text-tertiary">
         {t("haveAccount")}{" "}
-        <Button color="link-color" size="md" href="/sign-in">
+        <Button color="link-color" size="md" href={SIGN_IN_PATH}>
           {t("signInInstead")}
         </Button>
       </p>

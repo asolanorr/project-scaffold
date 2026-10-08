@@ -10,6 +10,7 @@ import { parseFormData } from "@/lib/form";
 import {
   AFTER_SIGN_IN_PATH,
   CHECK_EMAIL_PATH,
+  HOME_PATH,
   RESET_PASSWORD_PATH,
   RETURN_TO_PARAM,
 } from "@/lib/routes";
@@ -166,7 +167,7 @@ export async function resetPasswordAction(
 export async function signOutAction(): Promise<void> {
   await callAuthEndpoint("/sign-out", {});
   const locale = await getLocale();
-  redirect({ href: "/", locale });
+  redirect({ href: HOME_PATH, locale });
 }
 
 /**

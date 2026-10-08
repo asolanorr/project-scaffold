@@ -7,6 +7,7 @@ import {
 } from "@repo/payments/testing";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { SIGN_IN_PATH } from "@/lib/routes";
 import { form, OWNER, RedirectError, seedUsers, sessionFor } from "@/test/fixtures";
 import { seedPrice } from "./fixtures";
 
@@ -35,7 +36,7 @@ const initial = { ok: false } as const;
 const signedInAs = (user: typeof OWNER) => requireSessionMock.mockResolvedValue(sessionFor(user));
 const signedOut = () =>
   requireSessionMock.mockImplementation(() => {
-    throw new RedirectError("/sign-in");
+    throw new RedirectError(SIGN_IN_PATH);
   });
 
 let fake: FakePaymentsProvider;

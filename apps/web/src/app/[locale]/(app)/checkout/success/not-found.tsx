@@ -2,6 +2,7 @@
 
 import { Button } from "@repo/ui/components/base/buttons/button";
 import { useTranslations } from "next-intl";
+import { DASHBOARD_PATH } from "@/lib/routes";
 
 /**
  * Reached through `notFound()` from `OrderStatus`: the id is not a uuid, the
@@ -20,7 +21,7 @@ export default function OrderNotFound() {
     <main className="mx-auto flex w-full max-w-container flex-col items-start gap-3 px-4 py-12 md:px-8">
       <h1 className="text-display-xs font-semibold text-primary">{t("notFoundTitle")}</h1>
       <p className="text-md text-tertiary">{t("notFoundDescription")}</p>
-      <Button color="secondary" href="/dashboard">
+      <Button color="secondary" href={DASHBOARD_PATH}>
         {t("backLink")}
       </Button>
     </main>

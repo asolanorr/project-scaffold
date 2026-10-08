@@ -6,6 +6,7 @@ import { useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { Heading } from "react-aria-components";
 import { useRouter } from "@/i18n/navigation";
+import { PROJECTS_PATH } from "@/lib/routes";
 import { useProjectMutations } from "./project-mutations";
 
 /**
@@ -24,7 +25,7 @@ export function DeleteProjectButton({ id, name }: { id: string; name: string }) 
     startTransition(async () => {
       const deleted = await remove({ id, name });
       setOpen(false);
-      if (deleted) router.push("/projects");
+      if (deleted) router.push(PROJECTS_PATH);
     });
 
   return (

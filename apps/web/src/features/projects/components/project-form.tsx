@@ -12,6 +12,7 @@ import { startTransition, useActionState, useEffect } from "react";
 import { Controller, useForm } from "react-hook-form";
 import type { z } from "zod";
 import { useRouter } from "@/i18n/navigation";
+import { PROJECTS_PATH, projectPath } from "@/lib/routes";
 import { messageKeys, toValidationKey } from "@/lib/validation";
 import type { ProjectActionState } from "../actions";
 import { PROJECT_STATUSES } from "../schema";
@@ -54,7 +55,7 @@ export function ProjectForm({ mode, action, projectId, defaultValues }: ProjectF
   const [state, formAction, isPending] = useActionState(
     async (prev: ProjectActionState, formData: FormData) => {
       const result = await action(prev, formData);
-      if (result.ok) router.push(`/projects/${result.data.id}`);
+      if (result.ok) router.push(projectPath(result.data.id));
       return result;
     },
     { ok: false },
@@ -164,7 +165,7 @@ export function ProjectForm({ mode, action, projectId, defaultValues }: ProjectF
       />
 
       <div className="flex justify-end gap-3">
-        <Button color="secondary" href={projectId ? `/projects/${projectId}` : "/projects"}>
+        <Button color="secondary" href={projectId ? projectPath(projectId) : PROJECTS_PATH}>
           {tCommon("cancel")}
         </Button>
         <Button type="submit" isLoading={isPending} showTextWhileLoading>

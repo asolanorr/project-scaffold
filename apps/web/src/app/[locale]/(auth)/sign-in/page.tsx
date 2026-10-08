@@ -3,7 +3,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Suspense } from "react";
 import { SignInForm } from "@/features/auth/components/sign-in-form";
 import { resolveLocale } from "@/lib/locale";
-import { FORGOT_PASSWORD_PATH } from "@/lib/routes";
+import { FORGOT_PASSWORD_PATH, SIGN_UP_PATH } from "@/lib/routes";
 
 export default async function SignInPage({
   params,
@@ -37,7 +37,7 @@ export default async function SignInPage({
 
       <p className="text-center text-sm text-tertiary">
         {t("noAccount")}{" "}
-        <Button color="link-color" size="md" href="/sign-up">
+        <Button color="link-color" size="md" href={SIGN_UP_PATH}>
           {t("createOne")}
         </Button>
       </p>

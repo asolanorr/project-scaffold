@@ -12,5 +12,10 @@
     }
   },
   "include": ["src", "next.config.ts", "next-env.d.ts", ".next/types/**/*.ts"],
-  "exclude": ["node_modules", ".next"]
+  // Not a blanket ".next" exclude: that would also cancel the generated-types
+  // entry in `include` above, which is exactly how typedRoutes silently did
+  // nothing — the route types were never in the program. `include` already
+  // names everything that should compile; this only keeps the rest of the
+  // build output (compiled JS, caches) out.
+  "exclude": ["node_modules", ".next/cache", ".next/static", ".next/server"]
 }

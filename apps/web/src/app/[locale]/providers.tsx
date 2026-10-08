@@ -2,6 +2,7 @@
 
 import { Toaster } from "@repo/ui/composed/toaster";
 import { RouterProvider } from "@repo/ui/router";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";
@@ -39,7 +40,12 @@ export function Providers({ children }: { children: ReactNode }) {
 
   return (
     <RouterProvider
-      navigate={(href, options) => router.push(localize(href), options)}
+      // The cast, not a literal: `href` here is whatever a Button/Link was
+      // given at its own call site, already checked once there against
+      // lib/routes.ts — this is generic plumbing that every navigation
+      // passes through, and it cannot re-prove a runtime string is a
+      // literal route any more than next-intl's own `Link` can.
+      navigate={(href, options) => router.push(localize(href) as Route, options)}
       useHref={localize}
     >
       {children}

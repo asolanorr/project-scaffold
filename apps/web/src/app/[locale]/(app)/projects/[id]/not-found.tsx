@@ -2,6 +2,7 @@
 
 import { Button } from "@repo/ui/components/base/buttons/button";
 import { useTranslations } from "next-intl";
+import { PROJECTS_PATH } from "@/lib/routes";
 
 /**
  * Reached through `notFound()` from the detail and edit pages: the id is not
@@ -20,7 +21,7 @@ export default function ProjectNotFound() {
     <main className="mx-auto flex w-full max-w-container flex-col items-start gap-3 px-4 py-12 md:px-8">
       <h1 className="text-display-xs font-semibold text-primary">{t("notFoundTitle")}</h1>
       <p className="text-md text-tertiary">{t("notFoundDescription")}</p>
-      <Button color="secondary" href="/projects">
+      <Button color="secondary" href={PROJECTS_PATH}>
         {t("backToList")}
       </Button>
     </main>

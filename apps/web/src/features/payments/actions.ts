@@ -5,12 +5,14 @@ import { db, orders, prices } from "@repo/db";
 import { env } from "@repo/env";
 import { payments } from "@repo/payments";
 import { and, eq } from "drizzle-orm";
+import type { Route } from "next";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { localizedPath } from "@/i18n/routing";
 import type { ActionState } from "@/lib/action-state";
 import { parseFormData } from "@/lib/form";
+import { CHECKOUT_CANCEL_PATH, CHECKOUT_SUCCESS_PATH } from "@/lib/routes";
 import { messageKeys } from "@/lib/validation";
 import { createCheckoutSchema, type PaymentErrorCode } from "./schema";
 
@@ -59,8 +61,8 @@ export async function createCheckoutOrder(
     currency: order.currency,
     productName: price.name,
     customerEmail: session.user.email,
-    successUrl: `${origin}${localizedPath(locale, "/checkout/success")}?orderId=${order.id}`,
-    cancelUrl: `${origin}${localizedPath(locale, "/checkout/cancel")}`,
+    successUrl: `${origin}${localizedPath(locale, CHECKOUT_SUCCESS_PATH)}?orderId=${order.id}`,
+    cancelUrl: `${origin}${localizedPath(locale, CHECKOUT_CANCEL_PATH)}`,
   });
 
   await db
@@ -70,7 +72,9 @@ export async function createCheckoutOrder(
 
   // 5. invalidate — nothing to invalidate yet: the success page's cache tag
   //    is only ever set by the webhook, which is the sole writer of status.
-  // 6. respond — by leaving: Stripe's hosted page is where this ends.
-  redirect(checkout.url);
+  // 6. respond — by leaving: Stripe's hosted page is where this ends. The
+  //    cast, not a literal: this is Stripe's own URL, not one of this app's
+  //    routes, so it can never be checked against the generated route types.
+  redirect(checkout.url as Route);
 }
 //#endregion

@@ -1,6 +1,7 @@
 import { Button } from "@repo/ui/components/base/buttons/button";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { resolveLocale } from "@/lib/locale";
+import { SIGN_IN_PATH } from "@/lib/routes";
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   setRequestLocale(await resolveLocale(params));
@@ -12,7 +13,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       <p className="max-w-prose text-lg text-tertiary">{t("description")}</p>
       {/* A React Aria link: the RouterProvider in the layout routes it through
           next-intl, so the locale prefix is kept and the click is client-side. */}
-      <Button size="lg" href="/sign-in">
+      <Button size="lg" href={SIGN_IN_PATH}>
         {t("getStarted")}
       </Button>
     </main>

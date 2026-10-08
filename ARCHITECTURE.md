@@ -1109,6 +1109,25 @@ Three viable mechanisms, in order of effort:
 
 Start with 1, move to 2 when the manual steps become annoying.
 
+**Removing the example feature.** Whichever mechanism runs the setup script,
+deleting `projects` (§9) is not just deleting `features/projects`, its routes,
+its table and migration, and its message keys. Two shared files carry entries
+scoped to it that nothing enforces except a human remembering to look:
+`apps/web/src/lib/routes.ts` and `apps/web/src/lib/cache-tags.ts`. A stale
+`cacheTags.projects`/`cacheTags.project` export is dead code — harmless, easy
+to spot later. A stale path export in `routes.ts` is not: an audit found the
+dashboard's `href="/projects"` written as a plain string outside that file,
+which went undetected because typedRoutes was silently inactive (see the
+`tsconfig.json` note in §4's sibling discussion of generated types), and
+`pnpm check` — lint, typecheck and the full test suite — passed anyway with a
+dead link shipped. With typedRoutes correctly wired and `routes.ts` the only
+file allowed to hold a path literal (see its own file header, and the rule in
+AGENTS.md), the setup script's omission becomes exactly the failure it should
+be: delete the feature, leave its entry in `routes.ts`, and the build does not
+compile. Verified on a throwaway branch by deleting `features/projects` and
+its routes and confirming `routes.ts` fails to build; the branch was discarded
+and the example stays in the repo.
+
 ---
 
 ## 15. Roadmap

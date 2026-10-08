@@ -4,6 +4,7 @@ import { ArrowLeft } from "@repo/ui/icons";
 import { notFound } from "next/navigation";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { resolveLocale } from "@/lib/locale";
+import { PROJECTS_PATH, projectEditPath } from "@/lib/routes";
 import { getProject } from "../queries";
 import { projectIdSchema } from "../schema";
 import { DeleteProjectButton } from "./delete-project-button";
@@ -31,7 +32,12 @@ export async function ProjectDetail({
   return (
     <article className="flex flex-col gap-6">
       <div>
-        <Button color="link-gray" size="md" href="/projects" iconLeading={<ArrowLeft data-icon />}>
+        <Button
+          color="link-gray"
+          size="md"
+          href={PROJECTS_PATH}
+          iconLeading={<ArrowLeft data-icon />}
+        >
           {t("backToList")}
         </Button>
       </div>
@@ -44,7 +50,7 @@ export async function ProjectDetail({
           </div>
         </div>
         <div className="flex gap-3">
-          <Button color="secondary" href={`/projects/${project.id}/edit`}>
+          <Button color="secondary" href={projectEditPath(project.id)}>
             {tCommon("edit")}
           </Button>
           <DeleteProjectButton id={project.id} name={project.name} />

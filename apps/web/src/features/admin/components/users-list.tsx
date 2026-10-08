@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
+import { adminUserPath } from "@/lib/routes";
 import { listUsersForAdmin } from "../queries";
 
 export async function UsersList() {
@@ -25,7 +26,7 @@ export async function UsersList() {
               <tr key={user.id} className="border-t border-secondary">
                 <td className="py-2 pr-4">
                   <Link
-                    href={`/admin/users/${user.id}`}
+                    href={adminUserPath(user.id)}
                     className="font-medium text-brand-secondary hover:text-brand-secondary_hover hover:underline"
                   >
                     {user.name}

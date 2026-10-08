@@ -7,6 +7,7 @@ import { useFormatter, useTranslations } from "next-intl";
 import { useQueryStates } from "nuqs";
 import { useMemo, useTransition } from "react";
 import { Link } from "@/i18n/navigation";
+import { PROJECTS_NEW_PATH, projectPath } from "@/lib/routes";
 import type { ProjectPage } from "../queries";
 import { PROJECT_PAGE_SIZE, PROJECT_SORT_FIELDS, type ProjectSortField } from "../schema";
 import { projectSearchParams } from "../search-params";
@@ -46,7 +47,7 @@ export function ProjectsTable({ page }: { page: ProjectPage }) {
           header: t("columns.name"),
           cell: (info) => (
             <Link
-              href={`/projects/${info.row.original.id}`}
+              href={projectPath(info.row.original.id)}
               className="font-medium text-primary hover:underline"
             >
               {info.getValue()}
@@ -113,7 +114,7 @@ export function ProjectsTable({ page }: { page: ProjectPage }) {
                 {t("clearFilters")}
               </Button>
             ) : (
-              <Button size="sm" href="/projects/new">
+              <Button size="sm" href={PROJECTS_NEW_PATH}>
                 {tProjects("new")}
               </Button>
             )

@@ -3,6 +3,7 @@ import { setupTestTransaction } from "@repo/db/testing";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cacheTags } from "@/lib/cache-tags";
+import { SIGN_IN_PATH } from "@/lib/routes";
 import { form, OTHER, OWNER, RedirectError, seedUsers, sessionFor } from "@/test/fixtures";
 
 // Only the session is replaced. `ownedBy` and the rest of @repo/auth are
@@ -32,7 +33,7 @@ const defaultFilters = { page: 1, pageSize: 20, sort: "createdAt", dir: "desc" }
 const signedInAs = (user: typeof OWNER) => requireSessionMock.mockResolvedValue(sessionFor(user));
 const signedOut = () =>
   requireSessionMock.mockImplementation(() => {
-    throw new RedirectError("/sign-in");
+    throw new RedirectError(SIGN_IN_PATH);
   });
 
 async function createOwned(name = "Alpha") {

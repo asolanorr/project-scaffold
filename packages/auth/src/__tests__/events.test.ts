@@ -1,12 +1,10 @@
-import { authEvents } from "@repo/db";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const valuesMock = vi.fn();
-const insertMock = vi.fn((_table: unknown) => ({ values: valuesMock }));
+const appendAuditLogMock = vi.fn();
 
 vi.mock("@repo/db", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@repo/db")>()),
-  db: { insert: (table: unknown) => insertMock(table) },
+  appendAuditLog: (entry: unknown) => appendAuditLogMock(entry),
 }));
 
 const { logAuthEvent, resolveAuthEvent } = await import("../events");
@@ -15,19 +13,19 @@ const request = { ipAddress: "203.0.113.7", userAgent: "Mozilla/5.0" };
 
 beforeEach(() => {
   vi.clearAllMocks();
-  valuesMock.mockResolvedValue(undefined);
+  appendAuditLogMock.mockResolvedValue(undefined);
 });
 
 describe("resolveAuthEvent", () => {
   it("records a successful sign-in against the new session's user", () => {
     expect(
       resolveAuthEvent({ path: "/sign-in/email", didFail: false, newSessionUserId: "u_1" }),
-    ).toEqual({ type: "sign_in", userId: "u_1" });
+    ).toEqual({ action: "auth.sign_in", userId: "u_1" });
   });
 
   it("records a failed sign-in", () => {
     expect(resolveAuthEvent({ path: "/sign-in/email", didFail: true })).toEqual({
-      type: "sign_in_failed",
+      action: "auth.sign_in_failed",
       userId: null,
     });
   });
@@ -49,7 +47,7 @@ describe("resolveAuthEvent", () => {
   it("records a password change against the session's user", () => {
     expect(
       resolveAuthEvent({ path: "/change-password", didFail: false, sessionUserId: "u_1" }),
-    ).toEqual({ type: "password_change", userId: "u_1" });
+    ).toEqual({ action: "auth.password_change", userId: "u_1" });
   });
 
   // A rejected password change is a wrong current password, which is not the
@@ -79,7 +77,7 @@ describe("resolveAuthEvent", () => {
 
   it("resolves a null user id rather than failing when neither session is present", () => {
     expect(resolveAuthEvent({ path: "/sign-in/email", didFail: false })).toEqual({
-      type: "sign_in",
+      action: "auth.sign_in",
       userId: null,
     });
   });
@@ -87,21 +85,25 @@ describe("resolveAuthEvent", () => {
 
 describe("logAuthEvent", () => {
   it("writes the event with the request's IP and user agent", async () => {
-    await logAuthEvent({ type: "sign_in", userId: "u_1" }, request);
+    await logAuthEvent({ action: "auth.sign_in", userId: "u_1" }, request);
 
-    expect(insertMock).toHaveBeenCalledWith(authEvents);
-    expect(valuesMock).toHaveBeenCalledWith({
-      userId: "u_1",
-      type: "sign_in",
+    expect(appendAuditLogMock).toHaveBeenCalledWith({
+      actorId: "u_1",
+      action: "auth.sign_in",
+      entityType: "user",
+      entityId: "u_1",
+      diff: null,
       ipAddress: "203.0.113.7",
       userAgent: "Mozilla/5.0",
     });
   });
 
   it("writes an event with no user id", async () => {
-    await logAuthEvent({ type: "sign_in_failed", userId: null }, request);
+    await logAuthEvent({ action: "auth.sign_in_failed", userId: null }, request);
 
-    expect(valuesMock).toHaveBeenCalledWith(expect.objectContaining({ userId: null }));
+    expect(appendAuditLogMock).toHaveBeenCalledWith(
+      expect.objectContaining({ actorId: null, entityId: null }),
+    );
   });
 
   // This runs inside Better Auth's after-hook, where throwing would surface to
@@ -109,10 +111,10 @@ describe("logAuthEvent", () => {
   // because an audit insert timed out is the wrong trade.
   it("swallows a write failure rather than failing the request", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
-    valuesMock.mockRejectedValue(new Error("connection pool exhausted"));
+    appendAuditLogMock.mockRejectedValue(new Error("connection pool exhausted"));
 
     await expect(
-      logAuthEvent({ type: "sign_in", userId: "u_1" }, request),
+      logAuthEvent({ action: "auth.sign_in", userId: "u_1" }, request),
     ).resolves.toBeUndefined();
     expect(consoleError).toHaveBeenCalled();
 

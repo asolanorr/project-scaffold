@@ -7,6 +7,11 @@
  * page's own `requireSession()` will still catch, because this list is UX and
  * not the authorization boundary.
  */
+// `/admin` is deliberately absent. This list only redirects a signed-out
+// visitor to sign-in — exactly the "login prompt" an admin route must never
+// show, to anyone, including someone with no session at all. `requireAdmin()`
+// in the `(admin)` layout is the real gate, and it 404s every non-admin
+// identically regardless of what middleware does here.
 export const PROTECTED_PREFIXES = ["/dashboard", "/projects"] as const;
 
 /** Signed-in users have no reason to see these, so they get bounced onward. */

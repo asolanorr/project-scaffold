@@ -850,35 +850,63 @@ configured before the DSN is added, not after the first incident.
 Errors surfaced to the user carry a code and a safe message. Database errors,
 stack traces and the parsed input are never echoed back.
 
+The full setup above (`instrumentation.ts`, `withSentryConfig`, client-side
+init) is still outstanding — see the v0.4 roadmap. What exists today is
+narrower: `apps/web/src/lib/sentry.ts` lazily calls `Sentry.init()` the first
+time a scheduled job fails, so a cron job's thrown error reaches Sentry
+instead of only ever being a 500 nobody is watching. See "Scheduled jobs"
+below.
+
+### Scheduled jobs
+
+Every job lives in `apps/web/src/jobs/` as a route handler under
+`app/api/jobs/<name>/`, built from one shared wrapper
+(`createCronJobHandler` in `run-job.ts`) that does four things before or
+after the job's own logic runs: rejects a call with no valid
+`Authorization: Bearer $CRON_SECRET` with 401, logs the start and the
+outcome, caps the batch a single invocation may touch
+(`MAX_JOB_BATCH_SIZE`), and reports a thrown error to Sentry.
+
+The job itself is a plain function — `purgeStalePendingFiles` in
+`apps/web/src/features/files/` is the one example today — that takes a limit
+and returns how many rows it touched, with no knowledge of HTTP or the
+schedule. Idempotent by construction: once every row matching the cutoff is
+gone, the next call's `WHERE` finds nothing. A backlog larger than the cap
+clears over several ticks of the Vercel Cron schedule in
+`apps/web/vercel.json`, not in one call that risks the function timeout.
+There is no auth-event retention job any more — see "Audit log" below for
+why a time-based delete and an append-only table cannot coexist.
+
+This is deliberately the "smallest correct version" from the "Add a
+background job" recipe, not the job-queue system the recipe describes for
+work that outlives a request (a `jobs` table, enqueue-from-an-action,
+`FOR UPDATE SKIP LOCKED`). Reach for that only when a feature actually needs
+it.
+
 ### Authentication hygiene
 
 - Sign-in and password reset respond identically whether or not the account
   exists. A helpful "no account with that email" is a user enumeration oracle.
-- Auth events are logged from day one. The full audit log can wait; these
-  cannot, because without them there is nothing to investigate afterwards.
-  Written today: **sign-in, failed sign-in, password change**. The
-  `auth_event_type` enum also declares `email_change` and `session_revoked`,
-  because adding a value to a Postgres enum later is a migration, and an audit
-  log missing events for the weeks nobody noticed is the failure this table
-  exists to prevent. Wire them up with the features that raise them.
+- Auth events are logged from day one, into `audit_log` — see "Audit log"
+  below. Written today: **sign-in, failed sign-in, password change**, each
+  as an `action` like `"auth.sign_in"`. `AuthAction` also declares
+  `"auth.email_change"` and `"auth.session_revoked"` ahead of the features
+  that raise them, because an audit trail missing events for the weeks
+  nobody noticed is the failure this table exists to prevent.
 - Events are written in one Better Auth `after` hook rather than at each call
   site, so a new sign-in path cannot be added without one. The hook reads
   `context.returned`: a rejected endpoint reaches it carrying an `APIError`,
   which is what makes a failed sign-in observable at all. It never throws —
   refusing to authenticate a legitimate user because an audit insert timed out
   is the wrong trade.
-- A failed sign-in is logged with a **null** user id, deliberately. Resolving
+- A failed sign-in is logged with a **null** actor id, deliberately. Resolving
   the submitted email to an account would mean an existence check on every
   failed attempt, which is precisely the enumeration oracle the sign-in
   response is careful not to be. The IP, user agent and timestamp are what a
   credential-stuffing investigation actually reads.
-- Each event stores user id, event type, timestamp, IP and user agent, and is
-  deleted after 90 days. Full IPs, not hashed: a hash cannot tell you the login
-  came from a different country, which is the question you actually ask during
-  an incident. The retention window is what keeps this proportionate, and it is
-  short enough to state plainly in a client's privacy policy.
-  `purgeExpiredAuthEvents()` exists; **there is no scheduler calling it yet**,
-  so until one exists the retention promise is manual.
+- Full IPs, not hashed: a hash cannot tell you the login came from a
+  different country, which is the question you actually ask during an
+  incident. There is no retention window — see "Audit log" below.
 - IPs are recorded only when trustworthy. Better Auth discards a multi-hop
   `X-Forwarded-For` rather than believing it, because every value in it can be
   set by the client. Behind a load balancer, set
@@ -889,6 +917,70 @@ stack traces and the parsed input are never echoed back.
 - **Password changes do not yet revoke other sessions.** Better Auth takes
   `revokeOtherSessions` as a caller-supplied flag on `changePassword`, so this
   lands with the change-password UI.
+
+### Audit log
+
+`audit_log` generalizes what was `auth_events`: actor, action, entity type
+and id, a field-level diff, timestamp, IP and user agent — one table for
+every security event and every admin action, not two tables that drift.
+`action` is a free-form string (`"auth.sign_in"`, `"admin.user.viewed"`)
+rather than a Postgres enum; the set of actions grows with every admin
+feature, and an enum would mean a migration for each one.
+
+- **`appendAuditLog()`, in `packages/db/src/audit.ts`, is the only writer.**
+  No function in the codebase updates or deletes a row here — enforced by a
+  test that scans every package and app's source for `.update(auditLog)` or
+  `.delete(auditLog)` (`packages/db/src/__tests__/audit-log-append-only.test.ts`),
+  since the table has no RLS or trigger standing in the way of a mistake. It
+  is a regex scan, not a type system — it would miss a renamed import — and
+  it is not pretending to be more than a best-effort guard against the
+  straightforward mistake: a future "undo" or "redact" feature reaching for
+  `db.update(auditLog)`.
+- **No retention job, on purpose.** `auth_events` used to delete rows after
+  90 days. Generalizing it into an append-only audit log retired that job —
+  "deletes rows older than N days" and "nothing in application code ever
+  deletes a row here" cannot both be true of the same table, and an
+  accountability trail for admin actions is not the kind of record you want
+  to age out on a timer. If IP/user-agent retention becomes a compliance
+  requirement later, the answer is a separate, explicit decision — not
+  quietly bringing deletion back.
+- **Written in the same transaction as the change it describes**, from the
+  action layer, never from a database trigger. `updateUserAsAdmin` (see
+  "Admin panel" below) reads the row, computes the diff, writes the update,
+  and appends the audit row inside one `db.transaction()` — a crash between
+  the update and the audit write cannot leave one without the other.
+- **A diff is `{field: {old, new}}` for only the fields that actually
+  changed** (`diffFields()` in `packages/db/src/audit.ts`), never the whole
+  row. A read (an admin viewing a record) carries `diff: null`, not an empty
+  object standing in for "nothing happened."
+
+### Admin panel
+
+A `(admin)` route group with its own authorization boundary — a role check,
+not the ownership scoping every other mutation in this app uses.
+
+- **`requireAdmin()`** (`packages/auth/src/admin.ts`) is the whole boundary:
+  no session, a signed-in non-admin, and an admin whose role was since
+  revoked all get `notFound()`, identically. Not a redirect to sign-in —
+  that would itself be the "login prompt" an admin route must never show,
+  including to a visitor with no session at all. Called from
+  `(admin)/layout.tsx` for rendering, and again from every admin Server
+  Action, because a layout guards pages, not the action functions a crafted
+  request could call directly.
+- **`users.role`** is a Better Auth additional field registered with
+  `input: false` — unlike `locale`, nothing a request body sends can ever
+  set it. The only way to grant or revoke admin is a direct database write
+  from `updateUserAsAdmin`, never through Better Auth's own API.
+- **No ownership check in the admin mutation.** `updateUserAsAdmin` acts on
+  any user's record by id; `requireAdmin()` is the only gate. This is the
+  one mutation in the app where that is correct rather than a bug.
+- **Every admin read of personal data writes an audit row**, which is why
+  `listUsersForAdmin()` and `getUserForAdmin()` (`apps/web/src/features/
+  admin/queries.ts`) are deliberately not `"use cache"`: a cache hit would
+  mean a second admin viewing the same record inside the cache's lifetime
+  leaves no trace, which defeats the point of logging the view at all. The
+  cost is a query on every read; the admin section is not the hot path a
+  cache tag exists to protect.
 
 ### Supply chain
 
@@ -1033,9 +1125,10 @@ theme, the Hugeicons adapter), and `apps/web` with the middleware chain, the
 pipeline with the transactional Vitest harness, Playwright on
 `deployment_status`, and the Vercel deployment (migrations as a deploy step,
 trusted origins, the setup checklist). Still outstanding in v0.1: Google
-sign-in, Sentry, the retention job for auth events, and enabling Row Level
-Security in the migrations (§4 states it as the baseline; the schema does not
-yet call `.enableRLS()`).
+sign-in, the rest of Sentry (job failures report as of v0.4; request tracing
+and `error.tsx` do not yet), and enabling Row Level Security in the
+migrations (§4 states it as the baseline; the schema does not yet call
+`.enableRLS()`).
 
 **v0.2 — the reference feature**
 Full `projects` CRUD end to end, shared data table, seed data, unit + E2E
@@ -1078,7 +1171,17 @@ Checkout Sessions, webhook signature verification, event-to-order mapping),
 the `orders` and `processed_events` tables, one `transitionOrder()` function
 gating every status change through a fixed transition table, the webhook
 route handler as the sole fulfiller, and a checkout success page that reads
-status from the database rather than trusting the redirect.
+status from the database rather than trusting the redirect. Scheduled jobs —
+`apps/web/src/jobs/` (one shared wrapper for the `CRON_SECRET` check, start/
+outcome logging, the batch cap and Sentry reporting), wired to
+`purgeStalePendingFiles` on a Vercel Cron schedule in `apps/web/vercel.json`;
+see §10, "Scheduled jobs". Audit log and admin panel — `audit_log` generalized
+from `auth_events` (actor, action, entity, a field-level diff), one
+`appendAuditLog()` as the sole writer, enforced append-only by a repo-wide
+scan rather than a trigger; `users.role` and `requireAdmin()` as the
+authorization boundary for a new `(admin)` route group, returning the same
+404 to a non-admin, a revoked admin, and a signed-out visitor alike; see §10,
+"Audit log" and "Admin panel".
 
 **v0.5 — automation**
 `create-app` CLI, Renovate for dependency updates, release automation.

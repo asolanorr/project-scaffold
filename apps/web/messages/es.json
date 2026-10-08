@@ -189,5 +189,27 @@
     "errors": {
       "priceNotFound": "Ese precio ya no está disponible."
     }
+  },
+  "admin": {
+    "users": {
+      "title": "Usuarios",
+      "columns": {
+        "name": "Nombre",
+        "email": "Correo electrónico",
+        "role": "Rol"
+      }
+    },
+    "user": {
+      "backLink": "Todos los usuarios",
+      "roleLabel": "Rol",
+      "role": {
+        "user": "Usuario",
+        "admin": "Administrador"
+      },
+      "saved": "Guardado"
+    },
+    "errors": {
+      "notFound": "Ese usuario ya no existe."
+    }
   }
 }

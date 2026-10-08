@@ -14,8 +14,19 @@ import { describe, expect, it } from "vitest";
 // typechecks cleanly and then fails at runtime on the first sign-in. These
 // tests are the compile-time check that does not exist.
 const REQUIRED_FIELDS: Record<string, readonly string[]> = {
-  // `locale` is an additional field (see email-flows.userLocaleField).
-  users: ["id", "name", "email", "emailVerified", "image", "locale", "createdAt", "updatedAt"],
+  // `locale` and `role` are additional fields (see email-flows.userLocaleField
+  // and admin.userRoleField).
+  users: [
+    "id",
+    "name",
+    "email",
+    "emailVerified",
+    "image",
+    "locale",
+    "role",
+    "createdAt",
+    "updatedAt",
+  ],
   sessions: [
     "id",
     "expiresAt",
@@ -70,26 +81,6 @@ describe("table names", () => {
   // which is why auth.ts passes `modelName: "rateLimits"` explicitly.
   it("are snake_case in SQL", () => {
     expect(getTableName(schema.rateLimits)).toBe("rate_limits");
-  });
-});
-
-describe("auth_events", () => {
-  it("stores the fields an incident investigation needs", () => {
-    expect(Object.keys(getTableColumns(schema.authEvents)).sort()).toEqual(
-      ["id", "userId", "type", "ipAddress", "userAgent", "createdAt"].sort(),
-    );
-  });
-
-  // A failed sign-in against an address with no account has no user to point
-  // at, and it is the single most important row in this table.
-  it("allows a null user id", () => {
-    expect(schema.authEvents.userId.notNull).toBe(false);
-  });
-
-  it("covers the three events written today", () => {
-    expect(schema.authEventType.enumValues).toEqual(
-      expect.arrayContaining(["sign_in", "sign_in_failed", "password_change"]),
-    );
   });
 });
 

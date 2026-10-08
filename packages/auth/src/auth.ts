@@ -4,6 +4,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
+import { userRoleField } from "./admin";
 import {
   afterPasswordChange,
   beforePasswordReset,
@@ -40,7 +41,7 @@ export const auth = betterAuth({
   },
   emailVerification: emailVerificationOptions,
 
-  user: { additionalFields: userLocaleField },
+  user: { additionalFields: { ...userLocaleField, ...userRoleField } },
 
   // storage must be "database". The default is per-instance memory, which on
   // serverless means each cold start begins with an empty counter — that is not

@@ -1,4 +1,15 @@
-import { bigint, boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import {
+  bigint,
+  boolean,
+  index,
+  integer,
+  pgEnum,
+  pgTable,
+  text,
+  timestamp,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import type { z } from "zod";
 
 // Better Auth's core schema, as reported by `getAuthTables()` for this
 // project's options (email + password, database-backed rate limiting).
@@ -15,6 +26,14 @@ import { bigint, boolean, index, integer, pgTable, text, timestamp } from "drizz
 // Regenerate this file rather than hand-editing it when Better Auth options
 // change in a way that adds fields (a plugin, an extra provider).
 
+// A third manual departure, alongside plural naming and timestamptz: `role`
+// gates the admin section (see packages/auth/src/admin.ts). Also an
+// additional field in Better Auth's user model, but registered with
+// `input: false` — unlike `locale`, nothing a request body sends is ever
+// allowed to set it. The only way to change it is a direct database write
+// from an admin-only action.
+export const userRole = pgEnum("user_role", ["user", "admin"]);
+
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -26,12 +45,36 @@ export const users = pgTable("users", {
   // did ask for uses the request's locale. An additional field in Better
   // Auth's user model, set from the sign-up body.
   locale: text("locale").notNull().default("en"),
+  role: userRole("role").notNull().default("user"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
 });
+
+// Derived, picked allowlist for the one legitimate write path to this table
+// outside Better Auth itself: an admin editing another user's name or role.
+// See apps/web/src/features/admin/actions.ts.
+export const adminUpdateUserSchema = createInsertSchema(users, {
+  name: (s) => s.min(1).max(200),
+})
+  .pick({ name: true, role: true })
+  .partial();
+
+export const adminUserColumns = {
+  id: users.id,
+  name: users.name,
+  email: users.email,
+  emailVerified: users.emailVerified,
+  locale: users.locale,
+  role: users.role,
+  createdAt: users.createdAt,
+} as const;
+
+export type UserRole = (typeof userRole.enumValues)[number];
+export type AdminUpdateUser = z.infer<typeof adminUpdateUserSchema>;
+export type AdminUserView = Pick<typeof users.$inferSelect, keyof typeof adminUserColumns>;
 
 export const sessions = pgTable(
   "sessions",

@@ -1,15 +1,17 @@
-import { type AuthEventType, authEvents, db } from "@repo/db";
-import { lt } from "drizzle-orm";
+import { appendAuditLog } from "@repo/db";
+
+/** The auth events this app writes. Prefixed so they sort and filter apart
+ * from admin actions in the same `audit_log` table — `action LIKE 'auth.%'`
+ * is what a security-focused view would key off. */
+export type AuthAction =
+  | "auth.sign_in"
+  | "auth.sign_in_failed"
+  | "auth.password_change"
+  | "auth.email_change"
+  | "auth.session_revoked";
 
 /**
- * How long an auth event is kept. Short enough to state plainly in a privacy
- * policy, long enough that an incident noticed a month late can still be
- * investigated.
- */
-export const AUTH_EVENT_RETENTION_DAYS = 90;
-
-/**
- * Endpoint paths whose outcome is worth recording, and the event each one
+ * Endpoint paths whose outcome is worth recording, and the action each one
  * produces. Keyed by Better Auth's endpoint path so this stays a lookup table
  * rather than a chain of string comparisons in the hook.
  *
@@ -20,9 +22,9 @@ export const AUTH_EVENT_RETENTION_DAYS = 90;
  * change that enables the reset flow — it cannot be sent until email is
  * configured, so nothing is being missed today.
  */
-const EVENT_BY_PATH: Record<string, { onSuccess: AuthEventType; onFailure?: AuthEventType }> = {
-  "/sign-in/email": { onSuccess: "sign_in", onFailure: "sign_in_failed" },
-  "/change-password": { onSuccess: "password_change" },
+const EVENT_BY_PATH: Record<string, { onSuccess: AuthAction; onFailure?: AuthAction }> = {
+  "/sign-in/email": { onSuccess: "auth.sign_in", onFailure: "auth.sign_in_failed" },
+  "/change-password": { onSuccess: "auth.password_change" },
 };
 
 /** The facts the resolver needs, lifted out of Better Auth's request context. */
@@ -37,7 +39,7 @@ export type AuthEventOutcome = {
 };
 
 export type ResolvedAuthEvent = {
-  type: AuthEventType;
+  action: AuthAction;
   userId: string | null;
 };
 
@@ -54,7 +56,7 @@ export function resolveAuthEvent(outcome: AuthEventOutcome): ResolvedAuthEvent |
 
   if (!outcome.didFail) {
     return {
-      type: mapping.onSuccess,
+      action: mapping.onSuccess,
       userId: outcome.newSessionUserId ?? outcome.sessionUserId ?? null,
     };
   }
@@ -63,10 +65,11 @@ export function resolveAuthEvent(outcome: AuthEventOutcome): ResolvedAuthEvent |
 
   // A failed sign-in has no session, and the user id is deliberately not
   // looked up from the submitted email — doing so would mean an existence
-  // check on every failed attempt, which is the user-enumeration oracle the
-  // sign-in response itself is careful not to be. The IP, the user agent and
-  // the timestamp are what a credential-stuffing investigation actually reads.
-  return { type: mapping.onFailure, userId: null };
+  // check on every failed attempt, which is precisely the user-enumeration
+  // oracle the sign-in response itself is careful not to be. The IP, the
+  // user agent and the timestamp are what a credential-stuffing
+  // investigation actually reads.
+  return { action: mapping.onFailure, userId: null };
 }
 
 export type AuthEventRequest = {
@@ -75,36 +78,38 @@ export type AuthEventRequest = {
 };
 
 /**
- * Append one event to the log.
+ * Append one auth event to the audit log.
  *
  * Never throws. This runs inside Better Auth's after-hook, where an exception
  * would surface to the caller as a failed sign-in — refusing to authenticate a
  * legitimate user because an audit insert timed out is the wrong trade.
+ *
+ * No retention purge exists for these rows, or for anything else in
+ * `audit_log` — see the table's own doc comment in packages/db. The table
+ * used to be `auth_events` with a 90-day deletion job; generalizing it into
+ * an append-only audit log retired that job (packages/auth no longer
+ * exports `purgeExpiredAuthEvents`, and `apps/web/src/jobs/purge-auth-events`
+ * is gone), because "deletes rows older than N days" and "nothing in
+ * application code ever deletes a row here" cannot both be true of the same
+ * table.
  */
 export async function logAuthEvent(
   event: ResolvedAuthEvent,
   request: AuthEventRequest,
 ): Promise<void> {
   try {
-    await db.insert(authEvents).values({
-      userId: event.userId,
-      type: event.type,
+    await appendAuditLog({
+      actorId: event.userId,
+      action: event.action,
+      entityType: "user",
+      // The entity an auth event is "about" is the account itself — the one
+      // signing in, or null when there is none to point at.
+      entityId: event.userId,
+      diff: null,
       ipAddress: request.ipAddress,
       userAgent: request.userAgent,
     });
   } catch (error) {
-    console.error("[auth] failed to write auth event", { type: event.type, error });
+    console.error("[auth] failed to write auth event", { action: event.action, error });
   }
 }
-
-/**
- * Delete events past the retention window. Intended for a scheduled job; there
- * is no scheduler in the scaffold yet, so today this is called by hand or from
- * a deploy step.
- */
-//#region purge
-export async function purgeExpiredAuthEvents(now: Date = new Date()): Promise<void> {
-  const cutoff = new Date(now.getTime() - AUTH_EVENT_RETENTION_DAYS * 24 * 60 * 60 * 1000);
-  await db.delete(authEvents).where(lt(authEvents.createdAt, cutoff));
-}
-//#endregion

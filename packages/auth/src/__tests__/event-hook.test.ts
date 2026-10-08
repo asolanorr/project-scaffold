@@ -32,8 +32,8 @@ const credentials = { email: "ada@example.com", password: "correct-horse-battery
 const headers = () =>
   new Headers({ "user-agent": "Mozilla/5.0 (test)", "x-forwarded-for": "203.0.113.7" });
 
-const eventsOfType = (type: string) =>
-  logAuthEventMock.mock.calls.filter(([event]) => event.type === type);
+const eventsOfAction = (action: string) =>
+  logAuthEventMock.mock.calls.filter(([event]) => event.action === action);
 
 let userId: string;
 
@@ -55,14 +55,14 @@ describe("recordAuthEvent", () => {
   it("records a successful sign-in against the signed-in user", async () => {
     await auth.api.signInEmail({ body: credentials, headers: headers(), asResponse: true });
 
-    expect(eventsOfType("sign_in")).toHaveLength(1);
-    expect(eventsOfType("sign_in")[0]?.[0]).toEqual({ type: "sign_in", userId });
+    expect(eventsOfAction("auth.sign_in")).toHaveLength(1);
+    expect(eventsOfAction("auth.sign_in")[0]?.[0]).toEqual({ action: "auth.sign_in", userId });
   });
 
   it("captures the IP and user agent from the request", async () => {
     await auth.api.signInEmail({ body: credentials, headers: headers(), asResponse: true });
 
-    expect(eventsOfType("sign_in")[0]?.[1]).toEqual({
+    expect(eventsOfAction("auth.sign_in")[0]?.[1]).toEqual({
       ipAddress: "203.0.113.7",
       userAgent: "Mozilla/5.0 (test)",
     });
@@ -78,10 +78,10 @@ describe("recordAuthEvent", () => {
       }),
     ).rejects.toBeInstanceOf(APIError);
 
-    expect(eventsOfType("sign_in")).toHaveLength(0);
-    expect(eventsOfType("sign_in_failed")).toHaveLength(1);
-    expect(eventsOfType("sign_in_failed")[0]?.[0]).toEqual({
-      type: "sign_in_failed",
+    expect(eventsOfAction("auth.sign_in")).toHaveLength(0);
+    expect(eventsOfAction("auth.sign_in_failed")).toHaveLength(1);
+    expect(eventsOfAction("auth.sign_in_failed")[0]?.[0]).toEqual({
+      action: "auth.sign_in_failed",
       userId: null,
     });
   });
@@ -94,8 +94,10 @@ describe("recordAuthEvent", () => {
       }),
     ).rejects.toBeInstanceOf(APIError);
 
-    expect(eventsOfType("sign_in_failed")).toHaveLength(1);
-    expect(eventsOfType("sign_in_failed")[0]?.[1]).toMatchObject({ ipAddress: "203.0.113.7" });
+    expect(eventsOfAction("auth.sign_in_failed")).toHaveLength(1);
+    expect(eventsOfAction("auth.sign_in_failed")[0]?.[1]).toMatchObject({
+      ipAddress: "203.0.113.7",
+    });
   });
 
   it("records a password change against the session's user", async () => {
@@ -114,8 +116,11 @@ describe("recordAuthEvent", () => {
       headers: authed,
     });
 
-    expect(eventsOfType("password_change")).toHaveLength(1);
-    expect(eventsOfType("password_change")[0]?.[0]).toEqual({ type: "password_change", userId });
+    expect(eventsOfAction("auth.password_change")).toHaveLength(1);
+    expect(eventsOfAction("auth.password_change")[0]?.[0]).toEqual({
+      action: "auth.password_change",
+      userId,
+    });
   });
 
   it("records nothing for reading the session", async () => {

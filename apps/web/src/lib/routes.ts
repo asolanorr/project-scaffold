@@ -18,20 +18,24 @@ import type { Route } from "next";
  * delete the page and the constant that named it stops compiling, which is
  * the whole point — see the audit note in ARCHITECTURE.md's setup section.
  *
- * `Validated` prepends a fake locale segment before asking: every real route
- * in this app lives under the dynamic `[locale]` segment, and the paths
+ * `Validated` prepends a fixed, fake locale segment before asking: every real
+ * route in this app lives under the dynamic `[locale]` segment, and the paths
  * exported here are deliberately locale-free (next-intl adds the real locale
- * back at render/navigation time). One path can't be checked this way:
- * `HOME_PATH`. A path with nothing after the locale collides with the
- * locale segment itself in the generated type — "/anything" type-checks as
- * "the home page with locale=anything" whether or not "anything" is real.
- * That collision only bites a path with zero segments of its own; every
- * other path here has at least one real segment after the fake locale and is
- * genuinely checked against the generated routes.
+ * back at render/navigation time). The check is literal assignability
+ * (`literal extends Route<literal>`), not "is `Route<...>` the type never" —
+ * `Route<T>` always includes a couple of unconditional branches
+ * (`?${string}`, `#${string}`) regardless of `T`, so it is never literally
+ * `never` and checking against `never` would accept everything.
  */
-type Validated<P extends string> = Route<`/_locale_${P}`> extends never ? never : P;
+type Validated<P extends string> = `/_locale_${P}` extends Route<`/_locale_${P}`> ? P : never;
 
-/** Not validated — see the collision note above. */
+// The root route's own locale-free "suffix" is the empty string, not "/" —
+// unlike every other path here, the value this app actually navigates with
+// and the literal `Validated` checks are not the same string, so the proof
+// is split from the export.
+const _homeRouteExists: Validated<""> = "";
+void _homeRouteExists;
+
 export const HOME_PATH = "/";
 
 export const SIGN_IN_PATH: Validated<"/sign-in"> = "/sign-in";

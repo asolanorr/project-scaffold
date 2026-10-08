@@ -7,13 +7,7 @@ import {
 } from "@repo/payments/testing";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import {
-  form,
-  OWNER,
-  RedirectError,
-  seedUsers,
-  sessionFor,
-} from "../../projects/__tests__/fixtures";
+import { form, OWNER, RedirectError, seedUsers, sessionFor } from "@/test/fixtures";
 import { seedPrice } from "./fixtures";
 
 const requireSessionMock = vi.fn();

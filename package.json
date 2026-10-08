@@ -15,6 +15,7 @@
     "test:e2e": "playwright test",
     "db:generate": "turbo run db:generate -F @repo/db",
     "db:migrate": "turbo run db:migrate -F @repo/db",
+    "db:seed": "turbo run db:seed -F @repo/db",
     "prepare": "lefthook install"
   },
   "devDependencies": {

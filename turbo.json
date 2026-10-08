@@ -50,6 +50,10 @@
       "cache": false,
       "interactive": true
     },
+    "db:seed": {
+      "cache": false,
+      "interactive": true
+    },
     "//#typecheck": {}
   }
 }

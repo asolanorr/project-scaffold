@@ -8,7 +8,7 @@ import {
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cacheTags } from "@/lib/cache-tags";
-import { seedUsers } from "../../projects/__tests__/fixtures";
+import { seedUsers } from "@/test/fixtures";
 import { insertOrder, seedPrice } from "./fixtures";
 
 const updateTagMock = vi.fn();

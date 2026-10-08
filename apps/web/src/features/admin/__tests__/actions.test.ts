@@ -2,7 +2,7 @@ import { auditLog, db, users } from "@repo/db";
 import { setupTestTransaction } from "@repo/db/testing";
 import { eq } from "drizzle-orm";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { form } from "../../projects/__tests__/fixtures";
+import { form } from "@/test/fixtures";
 
 const requireAdminMock = vi.fn();
 vi.mock("@repo/auth", async (importOriginal) => ({

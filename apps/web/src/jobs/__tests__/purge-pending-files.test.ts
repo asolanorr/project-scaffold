@@ -4,8 +4,8 @@ import { env } from "@repo/env";
 import { createFakeStorage, setStorageProvider } from "@repo/storage/testing";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { OWNER, seedUsers } from "@/test/fixtures";
 import { PENDING_UPLOAD_WINDOW_MS } from "../../features/files/purge";
-import { OWNER, seedUsers } from "../../features/projects/__tests__/fixtures";
 
 vi.mock("server-only", () => ({}));
 

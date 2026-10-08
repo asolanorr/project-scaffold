@@ -9,14 +9,7 @@ import {
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cacheTags } from "@/lib/cache-tags";
-import {
-  form,
-  OTHER,
-  OWNER,
-  RedirectError,
-  seedUsers,
-  sessionFor,
-} from "../../projects/__tests__/fixtures";
+import { form, OTHER, OWNER, RedirectError, seedUsers, sessionFor } from "@/test/fixtures";
 
 // Only the session is replaced. `ownedBy` and the rest of @repo/auth are
 // real — the predicate under test is the one the application ships.

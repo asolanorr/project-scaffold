@@ -2,7 +2,7 @@ import { db, projects } from "@repo/db";
 import { setupTestTransaction } from "@repo/db/testing";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { cacheTags } from "@/lib/cache-tags";
-import { OTHER, OWNER, seedUsers } from "./fixtures";
+import { OTHER, OWNER, seedUsers } from "@/test/fixtures";
 
 const cacheTagMock = vi.fn();
 vi.mock("next/cache", () => ({

@@ -7,7 +7,7 @@ import {
 } from "@repo/storage/testing";
 import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { OWNER, seedUsers } from "../../projects/__tests__/fixtures";
+import { OWNER, seedUsers } from "@/test/fixtures";
 
 vi.mock("server-only", () => ({}));
 

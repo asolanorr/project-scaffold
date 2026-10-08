@@ -1,5 +1,4 @@
-import { projects } from "@repo/db";
-import { PgDialect } from "drizzle-orm/pg-core";
+import { PgDialect, pgTable, text, timestamp, uuid } from "drizzle-orm/pg-core";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const limitMock = vi.fn((_count: number) => Promise.resolve<unknown[]>([]));
@@ -7,11 +6,7 @@ const whereMock = vi.fn((_clause: unknown) => ({ limit: limitMock }));
 const fromMock = vi.fn((_table: unknown) => ({ where: whereMock }));
 const selectMock = vi.fn((_columns: unknown) => ({ from: fromMock }));
 
-vi.mock("@repo/db", async (importOriginal) => ({
-  // The table definitions are real — the predicate is only worth testing
-  // against the schema the application actually ships. Only the connection is
-  // replaced.
-  ...(await importOriginal<typeof import("@repo/db")>()),
+vi.mock("@repo/db", () => ({
   db: { select: (columns: unknown) => selectMock(columns) },
 }));
 
@@ -28,7 +23,18 @@ const { ownedBy, requireOwned } = await import("../ownership");
 const dialect = new PgDialect();
 const toSql = (clause: ReturnType<typeof ownedBy>) => dialect.sqlToQuery(clause);
 
-const columns = { id: projects.id, name: projects.name } as const;
+// A minimal stand-in for an ownable table. The assertions are on generated
+// SQL, so any table with id, owner_id and deleted_at exercises the same
+// predicate — packages/auth has no business knowing about an app-level
+// feature table like `projects`.
+const widgets = pgTable("widgets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  ownerId: text("owner_id").notNull(),
+  deletedAt: timestamp("deleted_at", { withTimezone: true }),
+});
+
+const columns = { id: widgets.id, name: widgets.name } as const;
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -36,31 +42,31 @@ beforeEach(() => {
 
 describe("ownedBy", () => {
   it("constrains the row id", () => {
-    const { sql, params } = toSql(ownedBy(projects, "p_1", "u_1"));
+    const { sql, params } = toSql(ownedBy(widgets, "p_1", "u_1"));
 
-    expect(sql).toContain('"projects"."id" = $1');
+    expect(sql).toContain('"widgets"."id" = $1');
     expect(params[0]).toBe("p_1");
   });
 
   // The whole point of the helper: an unscoped query would return another
   // user's row, and no amount of checking afterwards is as reliable.
   it("constrains the owner", () => {
-    const { sql, params } = toSql(ownedBy(projects, "p_1", "u_1"));
+    const { sql, params } = toSql(ownedBy(widgets, "p_1", "u_1"));
 
-    expect(sql).toContain('"projects"."owner_id" = $2');
+    expect(sql).toContain('"widgets"."owner_id" = $2');
     expect(params[1]).toBe("u_1");
   });
 
   // Rule 13: reads exclude soft-deleted rows. Restoring a deleted row must go
   // through a query that opts in, not through every ownership check.
   it("excludes soft-deleted rows", () => {
-    const { sql } = toSql(ownedBy(projects, "p_1", "u_1"));
+    const { sql } = toSql(ownedBy(widgets, "p_1", "u_1"));
 
-    expect(sql).toContain('"projects"."deleted_at" is null');
+    expect(sql).toContain('"widgets"."deleted_at" is null');
   });
 
   it("combines all three conditions with AND", () => {
-    const { sql } = toSql(ownedBy(projects, "p_1", "u_1"));
+    const { sql } = toSql(ownedBy(widgets, "p_1", "u_1"));
 
     expect(sql.match(/ and /g)).toHaveLength(2);
     expect(sql).not.toContain(" or ");
@@ -69,10 +75,10 @@ describe("ownedBy", () => {
   // Ids arrive from the client. They are bound as parameters, never spliced
   // into the statement text.
   it("parameterises the values rather than inlining them", () => {
-    const { sql, params } = toSql(ownedBy(projects, "'; drop table projects; --", "u_1"));
+    const { sql, params } = toSql(ownedBy(widgets, "'; drop table widgets; --", "u_1"));
 
     expect(sql).not.toContain("drop table");
-    expect(params).toContain("'; drop table projects; --");
+    expect(params).toContain("'; drop table widgets; --");
   });
 });
 
@@ -82,14 +88,14 @@ describe("requireOwned", () => {
     limitMock.mockResolvedValue([row]);
 
     await expect(
-      requireOwned({ table: projects, columns, id: "p_1", ownerId: "u_1" }),
+      requireOwned({ table: widgets, columns, id: "p_1", ownerId: "u_1" }),
     ).resolves.toEqual(row);
   });
 
   it("selects only the named columns", async () => {
     limitMock.mockResolvedValue([{ id: "p_1", name: "Acme" }]);
 
-    await requireOwned({ table: projects, columns, id: "p_1", ownerId: "u_1" });
+    await requireOwned({ table: widgets, columns, id: "p_1", ownerId: "u_1" });
 
     expect(selectMock).toHaveBeenCalledWith(columns);
   });
@@ -97,7 +103,7 @@ describe("requireOwned", () => {
   it("puts the ownership check in the WHERE clause", async () => {
     limitMock.mockResolvedValue([{ id: "p_1", name: "Acme" }]);
 
-    await requireOwned({ table: projects, columns, id: "p_1", ownerId: "u_1" });
+    await requireOwned({ table: widgets, columns, id: "p_1", ownerId: "u_1" });
 
     expect(whereMock).toHaveBeenCalledTimes(1);
     const [clause] = whereMock.mock.calls[0] as unknown as [ReturnType<typeof ownedBy>];
@@ -110,7 +116,7 @@ describe("requireOwned", () => {
     limitMock.mockResolvedValue([]);
 
     await expect(
-      requireOwned({ table: projects, columns, id: "p_1", ownerId: "someone-else" }),
+      requireOwned({ table: widgets, columns, id: "p_1", ownerId: "someone-else" }),
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -118,7 +124,7 @@ describe("requireOwned", () => {
     limitMock.mockResolvedValue([]);
 
     await expect(
-      requireOwned({ table: projects, columns, id: "missing", ownerId: "u_1" }),
+      requireOwned({ table: widgets, columns, id: "missing", ownerId: "u_1" }),
     ).rejects.toThrow(NotFoundError);
   });
 
@@ -126,7 +132,7 @@ describe("requireOwned", () => {
     limitMock.mockResolvedValue([]);
 
     const result = await requireOwned({
-      table: projects,
+      table: widgets,
       columns,
       id: "p_1",
       ownerId: "u_1",

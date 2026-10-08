@@ -1,5 +1,5 @@
 import { db, orders, prices } from "@repo/db";
-import { OWNER } from "../../projects/__tests__/fixtures";
+import { OWNER } from "@/test/fixtures";
 
 export async function seedPrice(overrides: Partial<typeof prices.$inferInsert> = {}) {
   const [price] = await db

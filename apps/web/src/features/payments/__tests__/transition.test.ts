@@ -2,7 +2,7 @@ import { db, orders, processedEvents } from "@repo/db";
 import { setupTestTransaction } from "@repo/db/testing";
 import { eq } from "drizzle-orm";
 import { describe, expect, it, vi } from "vitest";
-import { seedUsers } from "../../projects/__tests__/fixtures";
+import { seedUsers } from "@/test/fixtures";
 import { insertOrder, seedPrice } from "./fixtures";
 
 vi.mock("server-only", () => ({}));

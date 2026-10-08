@@ -83,8 +83,7 @@
   "dashboard": {
     "title": "Panel",
     "signedInAs": "Sesión iniciada como {email}",
-    "loading": "Cargando…",
-    "projectsLink": "Ir a proyectos"
+    "loading": "Cargando…"
   },
   "errors": {
     "notFoundTitle": "Página no encontrada",

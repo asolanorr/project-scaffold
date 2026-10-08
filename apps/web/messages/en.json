@@ -83,8 +83,7 @@
   "dashboard": {
     "title": "Dashboard",
     "signedInAs": "Signed in as {email}",
-    "loading": "Loading…",
-    "projectsLink": "Go to projects"
+    "loading": "Loading…"
   },
   "errors": {
     "notFoundTitle": "Page not found",

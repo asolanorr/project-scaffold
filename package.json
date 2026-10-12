@@ -8,7 +8,7 @@
   "scripts": {
     "dev": "turbo run dev",
     "build": "turbo run build",
-    "check": "turbo run lint typecheck test",
+    "check": "turbo run lint typecheck test build",
     "typecheck": "tsc --noEmit",
     "test": "turbo run test",
     "format": "biome check --write .",

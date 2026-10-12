@@ -22,7 +22,7 @@ packages/config Shared tsconfig, biome and tailwind configs
 
 ```bash
 pnpm dev              # run everything
-pnpm check            # lint + typecheck + test — run before finishing any task
+pnpm check            # lint + typecheck + test + build — run before finishing any task
 pnpm db:generate      # create a migration after changing schema
 pnpm db:migrate       # apply migrations
 pnpm test -- <file>   # single test file

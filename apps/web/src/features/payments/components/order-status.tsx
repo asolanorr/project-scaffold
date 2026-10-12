@@ -14,11 +14,20 @@ import { orderIdSchema } from "../schema";
  * (and regularly does) outrace the webhook that is the only thing allowed to
  * mark the order paid. A `pending` order here a moment later than usual is
  * the correct state to show, not a bug to work around.
+ *
+ * Takes the `searchParams` promise itself, not a resolved `orderId`: it is
+ * request data, so it has to be awaited inside this boundary, never in the
+ * page above it.
  */
-export async function OrderStatus({ orderId }: { orderId: string | undefined }) {
+export async function OrderStatus({
+  searchParams,
+}: {
+  searchParams: Promise<{ orderId?: string }>;
+}) {
   const session = await requireSession();
   const t = await getTranslations("checkout.success");
 
+  const { orderId } = await searchParams;
   const id = orderIdSchema.safeParse({ orderId });
   const order = id.success ? await getOrderStatus(session.user.id, id.data.orderId) : null;
 

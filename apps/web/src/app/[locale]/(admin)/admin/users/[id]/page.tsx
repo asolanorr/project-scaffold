@@ -9,13 +9,13 @@ export default async function AdminUserPage({
   params: Promise<{ locale: string; id: string }>;
 }) {
   setRequestLocale(await resolveLocale(params));
-  const { id } = await params;
   const t = await getTranslations("common");
 
   return (
     <main className="mx-auto flex w-full max-w-container flex-col gap-6 px-4 py-12 md:px-8">
+      {/* id has no generateStaticParams, so it is request data and waits. */}
       <Suspense fallback={<p className="text-md text-tertiary">{t("loading")}</p>}>
-        <UserEdit id={id} />
+        <UserEdit params={params} />
       </Suspense>
     </main>
   );

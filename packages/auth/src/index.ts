@@ -1,4 +1,4 @@
-export { requireAdmin, userRoleField } from "./admin";
+export { requireAdmin } from "./admin";
 export { auth, type Session, type SessionUser } from "./auth";
 export {
   LOCALE_HEADER,
@@ -17,4 +17,5 @@ export {
 export { authRouteHandlers, callAuthEndpoint } from "./next";
 export { type OwnableTable, ownedBy, requireOwned } from "./ownership";
 export { getRequestInfo, type RequestInfo } from "./request-info";
+export { userRoleField } from "./role-field";
 export { getSession, requireSession, SIGN_IN_PATH } from "./session";

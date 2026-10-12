@@ -7,7 +7,13 @@ import { getUserForAdmin } from "../queries";
 import { userIdSchema } from "../schema";
 import { UserEditForm } from "./user-edit-form";
 
-export async function UserEdit({ id }: { id: string }) {
+/**
+ * Takes the `params` promise itself, not a resolved `id`: `id` has no
+ * `generateStaticParams`, so it is request data and has to be awaited inside
+ * this boundary, never in the page above it.
+ */
+export async function UserEdit({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   // Not a real id at all: 404 before anything touches the database.
   if (!userIdSchema.safeParse({ id }).success) notFound();
 

@@ -11,13 +11,13 @@ export default async function CheckoutSuccessPage({
   searchParams: Promise<{ orderId?: string }>;
 }) {
   setRequestLocale(await resolveLocale(params));
-  const { orderId } = await searchParams;
   const t = await getTranslations("checkout.success");
 
   return (
     <main className="mx-auto flex w-full max-w-container flex-col gap-6 px-4 py-12 md:px-8">
+      {/* orderId is a query parameter — request data — so it waits. */}
       <Suspense fallback={<p className="text-md text-tertiary">{t("title")}</p>}>
-        <OrderStatus orderId={orderId} />
+        <OrderStatus searchParams={searchParams} />
       </Suspense>
     </main>
   );

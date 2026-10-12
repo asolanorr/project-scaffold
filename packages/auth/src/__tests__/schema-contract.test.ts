@@ -15,7 +15,7 @@ import { describe, expect, it } from "vitest";
 // tests are the compile-time check that does not exist.
 const REQUIRED_FIELDS: Record<string, readonly string[]> = {
   // `locale` and `role` are additional fields (see email-flows.userLocaleField
-  // and admin.userRoleField).
+  // and role-field.userRoleField).
   users: [
     "id",
     "name",

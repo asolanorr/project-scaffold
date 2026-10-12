@@ -4,7 +4,6 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createAuthMiddleware } from "better-auth/api";
 import { nextCookies } from "better-auth/next-js";
-import { userRoleField } from "./admin";
 import {
   afterPasswordChange,
   beforePasswordReset,
@@ -15,6 +14,7 @@ import {
   userLocaleField,
 } from "./email-flows";
 import { recordAuthEvent } from "./event-hook";
+import { userRoleField } from "./role-field";
 
 const isHttps = env.BETTER_AUTH_URL.startsWith("https://");
 

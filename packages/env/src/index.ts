@@ -1,36 +1,9 @@
 import { createEnv } from "@t3-oss/env-nextjs";
 import { z } from "zod";
-
-/**
- * Load the repository-root .env, if there is one.
- *
- * One .env at the root, shared by the app, drizzle-kit, the tests and the
- * scripts. Each of those runs with a different working directory, so the
- * candidates walk up from wherever the process started.
- *
- * Deliberately written with no imports. This module is pulled into the edge
- * middleware bundle, where `node:fs` would not resolve; `process.loadEnvFile`
- * simply does not exist there, so the guard makes the whole thing a no-op.
- *
- * Values already in the environment win — `loadEnvFile` does not overwrite
- * them — so a deployment's real variables are never shadowed by a stray file,
- * and in a deployment there is no file to find in the first place.
- */
-function loadRootEnvFile(): void {
-  const load = (process as { loadEnvFile?: (path: string) => void }).loadEnvFile;
-  if (typeof load !== "function") return;
-
-  for (const candidate of [".env", "../.env", "../../.env"]) {
-    try {
-      load.call(process, candidate);
-      return;
-    } catch {
-      // Not here. Keep walking up.
-    }
-  }
-}
-
-loadRootEnvFile();
+// Loads the repository-root .env, if there is one. See ./load for why this is
+// a separate module: drizzle.config.ts needs the loading without the
+// validation below.
+import "./load.ts";
 
 // Single source of truth for environment variables. Every package and app
 // that needs one imports it from here instead of reading `process.env`

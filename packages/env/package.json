@@ -5,7 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./edge": "./src/edge.ts"
+    "./edge": "./src/edge.ts",
+    "./load": "./src/load.ts"
   },
   "scripts": {
     "lint": "biome check .",

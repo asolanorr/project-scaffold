@@ -20,9 +20,19 @@ project in.
 
 ```bash
 pnpm install
-cp .env.example .env         # values below depend on which database option you pick
-pnpm db:migrate              # apply the SQL migrations
-pnpm dev                     # http://localhost:3000
+cp .env.example .env
+```
+
+Stop here and start a database before going further — `.env.example`'s
+defaults are for "Database option A" below. Pick option A or option B, start
+it, and point `.env` at it (skip this if you kept option A's defaults and
+just ran its three commands).
+
+Once the database is running and `.env` matches it:
+
+```bash
+pnpm db:migrate               # apply the SQL migrations
+pnpm dev                      # http://localhost:3000
 ```
 
 Sign up at `/sign-up`. Verification is required: with no `RESEND_API_KEY`
@@ -72,8 +82,9 @@ DIRECT_URL=postgresql://postgres:postgres@localhost:5432/scaffold
 `docker stop scaffold-pg` / `docker start scaffold-pg` between sessions;
 `docker rm -f scaffold-pg` to start over.
 
-Either way, `pnpm db:migrate` afterwards, and `pnpm check` runs the database
-tests instead of skipping them.
+Either way, once it's running: back up to the quick start and run
+`pnpm db:migrate`. With a database reachable, `pnpm check` also runs the
+database tests instead of skipping them.
 
 ## Commands
 

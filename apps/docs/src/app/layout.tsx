@@ -4,7 +4,7 @@ import "./global.css";
 export default function Layout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className="flex min-h-screen flex-col">
+      <body className="flex min-h-screen flex-col" suppressHydrationWarning>
         <RootProvider>{children}</RootProvider>
       </body>
     </html>

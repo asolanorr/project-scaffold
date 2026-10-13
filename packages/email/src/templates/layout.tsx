@@ -11,6 +11,19 @@ import {
   Text,
 } from "@react-email/components";
 import type { ReactNode } from "react";
+// Explicit `React` import, despite `tsconfig.json` setting the automatic
+// JSX runtime: `tsx` (the CLI that runs packages/auth's seed script) only
+// applies a package's own "jsx" compiler option to files inside that
+// package's own tsconfig — a template rendered from outside packages/email
+// (anywhere that isn't Next, which transforms JSX with its own bundler
+// regardless of this) gets the classic transform instead, which compiles
+// `<Layout>` to `React.createElement(Layout, ...)` and needs `React` in
+// scope to do it. Confirmed empirically: removing this reproduces
+// `ReferenceError: React is not defined` when `pnpm db:seed` sends the
+// verification email. Every template file that returns JSX needs it, not
+// just this one — each is its own module with its own local scope.
+// biome-ignore lint/correctness/noUnusedImports: used by the classic JSX transform's React.createElement calls, invisible to static analysis
+import React from "react";
 import type { EmailLocale, EmailMessages } from "../messages";
 
 // Email clients ignore stylesheets; every style is inline, and the palette is

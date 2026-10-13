@@ -1,4 +1,7 @@
 import { Text } from "@react-email/components";
+// See layout.tsx for why this explicit import is necessary.
+// biome-ignore lint/correctness/noUnusedImports: used by the classic JSX transform's React.createElement calls, invisible to static analysis
+import React from "react";
 import { type EmailLocale, messages } from "../messages";
 import { Layout, textStyle } from "./layout";
 

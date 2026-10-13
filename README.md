@@ -36,9 +36,26 @@ pnpm db:seed                  # deterministic example data — see ARCHITECTURE.
 pnpm dev                      # http://localhost:3000
 ```
 
-Sign up at `/sign-up`. Verification is required: with no `RESEND_API_KEY`
-the email is printed to the terminal running `pnpm dev` — open the link in it
-to land on `/dashboard`. `/es/...` serves the same pages in Spanish.
+`db:seed` prints two real, already-verified accounts and ends the run with
+their credentials:
+
+```text
+owner@seed.local  /  seed-password-123   — owns a paginated list of projects
+other@seed.local  /  seed-password-123   — owns one project of their own
+```
+
+Sign in at `/sign-in` as `owner@seed.local` to see the populated, paginated
+`/projects` list. Delete one from the list and undo it from the toast that
+appears — that is the only place restore is reachable; a project deleted in
+an earlier session (the seed data includes one, to prove the list excludes
+it) has no UI path back, by design. Sign in as `other@seed.local` instead
+and the owner's projects are not there, which is the one thing most worth
+confirming by hand rather than from the unit tests alone.
+
+To create your own account instead, sign up at `/sign-up`. Verification is
+required: with no `RESEND_API_KEY` the email is printed to the terminal
+running `pnpm dev` — open the link in it to land on `/dashboard`. `/es/...`
+serves the same pages in Spanish.
 
 ### Database option A — Supabase local (matches production)
 

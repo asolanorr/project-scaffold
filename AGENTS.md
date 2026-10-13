@@ -11,8 +11,8 @@ and take precedence within their folder.
 ```
 apps/web        Next.js application (App Router)
 apps/docs       Fumadocs documentation site
-packages/db     Drizzle schema, client, migrations, seed
-packages/auth   Better Auth configuration and helpers
+packages/db     Drizzle schema, client, migrations
+packages/auth   Better Auth configuration, helpers, seed
 packages/ui     Shared components and Tailwind preset
 packages/env    Validated environment variables
 packages/config Shared tsconfig, biome and tailwind configs

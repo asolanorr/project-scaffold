@@ -106,14 +106,13 @@ scaffold/
 │   └── docs/                     # Fumadocs site, deployed separately
 │
 ├── packages/
-│   ├── db/                       # Drizzle schema, client, migrations, seed
+│   ├── db/                       # Drizzle schema, client, migrations
 │   │   ├── src/
 │   │   │   ├── schema/           # one file per table + index.ts barrel
-│   │   │   ├── client.ts
-│   │   │   └── seed.ts
+│   │   │   └── client.ts
 │   │   ├── migrations/           # generated SQL, committed
 │   │   └── drizzle.config.ts
-│   ├── auth/                     # Better Auth server config + client helpers
+│   ├── auth/                     # Better Auth server config + client helpers + seed.ts
 │   ├── ui/                       # Untitled UI components, icons, Tailwind preset
 │   ├── email/                    # Resend transport, React Email templates, sendEmail()
 │   ├── storage/                  # Supabase Storage provider, signed uploads, mime sniffing
@@ -701,7 +700,15 @@ after `pnpm db:migrate && pnpm db:seed`.
   timestamps
 - generated migration committed to the repo
 - seed script producing a deterministic set of records for local and preview
-  environments
+  environments, owned by two real, sign-in-able accounts — created through
+  Better Auth's own API rather than inserted, and verified directly, so
+  signing in as the second one is how you confirm by hand that owner-scoped
+  queries exclude another user's projects, the one behaviour here most worth
+  seeing rather than taking on faith from the unit tests — the script itself
+  lives in `packages/auth`, not `packages/db`, because creating the accounts
+  needs Better Auth's own configured instance, and `packages/db` cannot
+  depend on `packages/auth` without a circular package dependency (see the
+  script's own header comment)
 - indexes on the columns the list query actually filters and sorts by
 
 **Contract layer**

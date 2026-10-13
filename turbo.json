@@ -47,12 +47,10 @@
       "interactive": true
     },
     "db:migrate": {
-      "cache": false,
-      "interactive": true
+      "cache": false
     },
     "db:seed": {
-      "cache": false,
-      "interactive": true
+      "cache": false
     },
     "//#typecheck": {}
   }

@@ -84,10 +84,9 @@ jobs:
       - name: Typecheck
         run: pnpm turbo run typecheck
 
-      # Migrations run against a throwaway Postgres before merge. Direct call
-      # rather than `pnpm db:migrate`: that turbo task is marked interactive.
+      # Migrations run against a throwaway Postgres before merge.
       - name: Migrate
-        run: pnpm --filter @repo/db exec drizzle-kit migrate
+        run: pnpm db:migrate
 
       # Database tests run inside a transaction each and roll back, so they
       # share this one database without sharing state. See packages/db/src/testing.

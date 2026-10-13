@@ -25,13 +25,14 @@ cp .env.example .env
 
 Stop here and start a database before going further — `.env.example`'s
 defaults are for "Database option A" below. Pick option A or option B, start
-it, and point `.env` at it (skip this if you kept option A's defaults and
-just ran its three commands).
+it, and point `.env` at it (skip the `.env` edit if you went with option A —
+its defaults already match).
 
 Once the database is running and `.env` matches it:
 
 ```bash
 pnpm db:migrate               # apply the SQL migrations
+pnpm db:seed                  # deterministic example data — see ARCHITECTURE.md §9
 pnpm dev                      # http://localhost:3000
 ```
 
@@ -45,8 +46,12 @@ The [Supabase CLI](https://supabase.com/docs/guides/local-development) runs
 the same stack a deployed project uses: Postgres behind a pooler on 6543 and
 direct on 5432, plus Studio at <http://localhost:54323>.
 
+`./supabase` is already committed, so there is no `init` step — it would fail
+with `InitConfigExistsError` against the checked-in `config.toml`. Only
+relevant if you are setting this up as your own project rather than cloning
+this one: `pnpm dlx supabase init`, once, before the commands below.
+
 ```bash
-pnpm dlx supabase init        # once, creates ./supabase (commit it)
 pnpm dlx supabase start       # pulls the images on first run, ~2 min
 pnpm dlx supabase status      # prints the connection strings
 ```
@@ -90,7 +95,7 @@ database tests instead of skipping them.
 
 ```bash
 pnpm dev              # every app, with hot reload
-pnpm check            # lint + typecheck + test — run before pushing
+pnpm check            # lint + typecheck + test + build — run before pushing
 pnpm build            # production build of every app
 pnpm format           # Biome, writing fixes
 pnpm test -- <file>   # one Vitest file
@@ -98,6 +103,7 @@ pnpm test:e2e         # Playwright, starts the app if none is running
 
 pnpm db:generate      # new migration from a schema change
 pnpm db:migrate       # apply migrations to DIRECT_URL
+pnpm db:seed          # deterministic example data — refuses a non-local DATABASE_URL
 ```
 
 ## Documentation

@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.5.13",
-    "@commitlint/cli": "21.2.2",
+    "@commitlint/cli": "21.2.3",
     "@commitlint/config-conventional": "21.2.2",
     "@playwright/test": "1.63.0",
     "@repo/config": "workspace:*",

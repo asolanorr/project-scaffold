@@ -15,3 +15,10 @@ auditConfig:
   ignoreGhsas:
     - GHSA-67mh-4wv8-2f99 # esbuild dev server CORS, via drizzle-kit
     - GHSA-82fw-gwwq-j7x9 # @vitest/mocker path traversal, via vitest
+
+# GHSA-rj75-hqrm-r3gf: @tailwindcss/typography pins postcss-selector-parser to
+# exactly 6.0.10 and 0.5.20 is its latest release, so there is no parent to
+# upgrade. Remove once typography ships a release depending on
+# postcss-selector-parser >=7.1.6.
+overrides:
+  "@tailwindcss/typography>postcss-selector-parser": 7.1.6

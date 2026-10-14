@@ -6,6 +6,8 @@ export default defineConfig({
     include: ["src/**/*.test.ts"],
     // Points `db` at the per-test transaction. See src/testing.
     setupFiles: ["./src/testing/setup.ts"],
+    // Points the run at scaffold_test, creating and migrating it if needed.
+    globalSetup: ["./src/testing/global-setup.ts"],
     // @repo/env validates every variable at import time, and this package
     // only uses the database ones. DATABASE_URL is deliberately absent: it
     // comes from .env locally and from the job environment in CI.

@@ -7,6 +7,8 @@
     ".": "./src/index.ts",
     "./testing": "./src/testing/index.ts",
     "./testing/setup": "./src/testing/setup.ts",
+    "./testing/guard": "./src/testing/guard.ts",
+    "./testing/global-setup": "./src/testing/global-setup.ts",
     "./schema": "./src/schema/index.ts"
   },
   "scripts": {
@@ -15,6 +17,7 @@
     "test": "vitest run",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "tsx src/preflight-migrate.ts && drizzle-kit migrate",
+    "db:test:setup": "tsx src/testing/cli.ts",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio"
   },

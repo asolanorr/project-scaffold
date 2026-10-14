@@ -106,7 +106,8 @@ DIRECT_URL=postgresql://postgres:postgres@localhost:5432/scaffold
 
 Either way, once it's running: back up to the quick start and run
 `pnpm db:migrate`. With a database reachable, `pnpm check` also runs the
-database tests instead of skipping them.
+database tests instead of skipping them, against their own `scaffold_test`
+database on the same server.
 
 ## Commands
 
@@ -121,6 +122,7 @@ pnpm test:e2e         # Playwright, starts the app if none is running
 pnpm db:generate      # new migration from a schema change
 pnpm db:migrate       # apply migrations to DIRECT_URL
 pnpm db:seed          # deterministic example data — refuses a non-local DATABASE_URL
+pnpm db:test:setup    # create + migrate scaffold_test (pnpm test does this itself)
 ```
 
 ## Documentation
@@ -184,8 +186,11 @@ it("stores the user", async () => {
 ```
 
 Each test runs inside a transaction that is rolled back afterwards, so tests
-share one database — the one at `DATABASE_URL`, migrated — without sharing
-state. The code under test is unchanged: the project's Vitest setup file
+share one database without sharing state. That database is `scaffold_test`
+on the same server as `DATABASE_URL` — never the dev database, so seeded data
+cannot change a result. `pnpm test` creates and migrates it if it is missing;
+`pnpm db:test:setup` does the same on demand. To use another one, set
+`TEST_DATABASE_URL`; its name must end in `_test`, or the run refuses to start. The code under test is unchanged: the project's Vitest setup file
 points `db` at the open transaction. Locally, with no database reachable,
 these tests skip with a warning; in CI they fail.
 

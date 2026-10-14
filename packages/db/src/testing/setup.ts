@@ -1,3 +1,4 @@
+import "./guard";
 import { vi } from "vitest";
 import { state } from "./state";
 

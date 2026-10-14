@@ -9,6 +9,9 @@ export default defineConfig({
     // inside a rolled-back transaction; every other test is unaffected and
     // needs no database.
     setupFiles: ["@repo/db/testing/setup"],
+    // Points the run at scaffold_test (never the dev database), creates and
+    // migrates it if needed, and the setup file above refuses anything else.
+    globalSetup: ["@repo/db/testing/global-setup"],
     // @repo/env validates at import, and feature tests import @repo/auth for
     // the real ownership helpers. Placeholders for what the tests never use;
     // DATABASE_URL is deliberately absent — it comes from .env locally and

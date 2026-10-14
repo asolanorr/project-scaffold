@@ -361,6 +361,9 @@ Common mistakes that look reasonable but violate the architecture:
   sharing state. The code under test keeps importing `db` from `@repo/db` — the
   project's Vitest setup file points it at the open transaction. Do not
   truncate tables, do not create per-test schemas, do not mock `db` by hand.
+- **Tests never run against the dev database.** They use `scaffold_test` (or
+  `TEST_DATABASE_URL`), which `pnpm test` creates and migrates itself; the
+  name must end in `_test` or the run refuses to start.
 - **Skipped locally, enforced in CI.** With no Postgres reachable the database
   tests skip with a warning; in CI they fail. A green run on a machine without
   a database is not a green run.

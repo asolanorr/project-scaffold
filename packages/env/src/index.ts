@@ -19,6 +19,10 @@ export const env = createEnv({
     DATABASE_URL: z.url(),
     // Direct connection (port 5432) — used by drizzle-kit for migrations only.
     DIRECT_URL: z.url(),
+    // Tests only. Overrides the database the test run uses; unset, tests use
+    // scaffold_test on the same server as DATABASE_URL. The name must end in
+    // _test or the run refuses to start (@repo/db/testing).
+    TEST_DATABASE_URL: z.url().optional(),
 
     // Signing key for session tokens and every other Better Auth secret. 32
     // bytes minimum because it is the input to the HMAC — generate one with
@@ -89,6 +93,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     DATABASE_URL: process.env.DATABASE_URL,
     DIRECT_URL: process.env.DIRECT_URL,
+    TEST_DATABASE_URL: process.env.TEST_DATABASE_URL || undefined,
     BETTER_AUTH_SECRET: process.env.BETTER_AUTH_SECRET,
     // `||`, not `??`: an empty value in a dashboard means "not set" too.
     BETTER_AUTH_URL: process.env.BETTER_AUTH_URL || vercelOrigin(),

@@ -109,6 +109,14 @@ Either way, once it's running: back up to the quick start and run
 database tests instead of skipping them, against their own `scaffold_test`
 database on the same server.
 
+## Starting your own project
+
+```bash
+pnpm run project:init         # name, slug, keep or drop the example feature; deletes itself when done
+```
+
+`pnpm setup` is a pnpm built-in (it configures pnpm's PATH) and is not this script.
+
 ## Commands
 
 ```bash

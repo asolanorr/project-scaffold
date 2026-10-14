@@ -1,12 +1,12 @@
 #!/usr/bin/env node
-// One-shot project setup. Turns a fresh clone of the scaffold into your project,
+// One-shot project initialisation. Turns a fresh clone of the scaffold into your project,
 // then deletes itself.
 //
-//   pnpm run setup                     interactive
-//   pnpm run setup -- --name "Acme" --slug acme --no-example     non-interactive
-//   pnpm run setup -- --dry-run ...    plan and check, write nothing
+//   pnpm run project:init                     interactive
+//   pnpm run project:init -- --name "Acme" --slug acme --no-example     non-interactive
+//   pnpm run project:init -- --dry-run ...    plan and check, write nothing
 //
-// (`pnpm setup` without `run` is pnpm's own built-in PATH command and never
+// (`pnpm setup` is pnpm's own built-in PATH command and never
 // reaches this script.)
 //
 // Everything is planned in memory first: every edit is applied to a copy of the
@@ -58,7 +58,7 @@ function parseArgs(argv) {
   return opts;
 }
 
-const HELP = `Usage: pnpm run setup [-- options]
+const HELP = `Usage: pnpm run project:init [-- options]
 
   --name <text>      Display name, e.g. "Acme Cloud"
   --slug <text>      Lowercase letters, digits and hyphens, e.g. acme-cloud
@@ -570,11 +570,11 @@ async function main() {
   const pkgPath = join(ROOT, "package.json");
   const pkg = JSON.parse(readFileSync(pkgPath, "utf8"));
   if (pkg.name !== SCAFFOLD_SLUG) {
-    console.log(`Setup already ran (package name is "${pkg.name}"). Nothing was changed.`);
+    console.log(`project:init already ran (package name is "${pkg.name}"). Nothing was changed.`);
     return;
   }
   if (existsSync(join(ROOT, ".env"))) {
-    fail(".env already exists and will not be overwritten. Move it aside and run setup again.");
+    fail(".env already exists and will not be overwritten. Move it aside and run project:init again.");
   }
   if (!existsSync(join(ROOT, ".env.example"))) fail(".env.example is missing.");
 
@@ -650,11 +650,11 @@ async function main() {
   // re-read from disk, not taken from the plan, so a failure above leaves the
   // script runnable.
   const written = JSON.parse(readFileSync(pkgPath, "utf8"));
-  delete written.scripts.setup;
+  delete written.scripts["project:init"];
   writeFileSync(pkgPath, `${JSON.stringify(written, null, 2)}\n`);
   rmSync(join(ROOT, SELF));
   if (readdirSync(join(ROOT, "scripts")).length === 0) rmdirSync(join(ROOT, "scripts"));
-  console.log("Setup finished and removed itself.");
+  console.log("project:init finished and removed itself.");
 }
 
 main().catch((error) => {

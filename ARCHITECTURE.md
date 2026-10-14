@@ -1104,8 +1104,9 @@ drift out of date.
 Three viable mechanisms, in order of effort:
 
 1. **GitHub template repository** — zero work, "Use this template", then a
-   `setup` script renames the project, rewrites the README and clears git
-   history. Good enough to start.
+   `project:init` script (`pnpm run project:init`) renames the project and
+   optionally removes the example feature, then deletes itself. Good enough to
+   start.
 2. **`create-<name>-app` CLI** — a small package that prompts for project
    name, database provider and optional modules (payments, email, org
    support), then writes only the selected pieces. Worth building after three

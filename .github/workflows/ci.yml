@@ -186,13 +186,13 @@ jobs:
         if: steps.gate.outputs.run == 'true'
         run: |
           if [ "${{ matrix.example }}" = "kept" ]; then flag=--keep-example; else flag=--no-example; fi
-          pnpm run setup -- --name "CI Check" --slug ci-check "$flag"
+          pnpm run project:init -- --name "CI Check" --slug ci-check "$flag"
 
       - name: Setup removed itself and wrote a blank .env
         if: steps.gate.outputs.run == 'true'
         run: |
           test ! -e scripts/setup.mjs
-          if grep -q '"setup"' package.json; then echo "package.json still has a setup script"; exit 1; fi
+          if grep -q '"project:init"' package.json; then echo "package.json still has the project:init script"; exit 1; fi
           test -f .env
           if grep -E '^[A-Z][A-Z0-9_]*=.+' .env; then echo ".env carries a value"; exit 1; fi
 
@@ -201,7 +201,7 @@ jobs:
         run: |
           git status --porcelain > /tmp/before.status
           git diff | sha256sum > /tmp/before.diff
-          if pnpm run setup -- --name "CI Check" --slug ci-check --no-example; then
+          if pnpm run project:init -- --name "CI Check" --slug ci-check --no-example; then
             echo "the setup script is still runnable"; exit 1
           fi
           git status --porcelain > /tmp/after.status

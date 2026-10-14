@@ -17,7 +17,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join } from "node:path";
+import { dirname, join, posix } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
@@ -157,8 +157,13 @@ class Tree {
   /** path -> { text, crlf, original } for every tracked text file. */
   files = new Map();
   deleted = new Set();
+  /** Every tracked path, text or not: what an <include> may legitimately point at. */
+  tracked;
+  /** Docs pages that lost a code excerpt and need a human to rewrite them. */
+  rewriteDocs = new Set();
 
   constructor(paths) {
+    this.tracked = new Set(paths);
     for (const path of paths) {
       if (skipped(path)) continue;
       const buffer = readFileSync(join(ROOT, path));
@@ -378,7 +383,27 @@ function removeExample(tree) {
     "Sign up at `/sign-up`, land on `/dashboard`, open `/projects`.",
     "Sign up at `/sign-up` and land on `/dashboard`.",
   );
+
+  // The docs site embeds source files with <include>. One pointing at a deleted
+  // file fails the docs build, so each is replaced by an MDX comment: invisible
+  // to readers, greppable, and the page is reported for a human to rewrite.
+  for (const [path] of tree.live()) {
+    if (!path.endsWith(".mdx")) continue;
+    const next = tree.get(path).replace(INCLUDE_LINE, (line, target) => {
+      if (!tree.deleted.has(includeTarget(path, target))) return line;
+      tree.rewriteDocs.add(path);
+      return "{/* setup: the example code quoted here was removed with the projects feature */}\n";
+    });
+    tree.set(path, next);
+  }
 }
+
+/** One `<include ...>relative/path#region</include>` per line, as the docs write them. */
+const INCLUDE_LINE = /^<include\b[^>]*>([^<\n]*)<\/include>\n/gm;
+
+/** Repo-relative path an include resolves to (MDX escapes `_` as `\_`). */
+const includeTarget = (mdxPath, target) =>
+  posix.normalize(posix.join(posix.dirname(mdxPath), target.split("#")[0].replaceAll("\\_", "_")));
 
 // --------------------------------------------------------------- dangling scan
 
@@ -418,6 +443,14 @@ function scanForDanglingReferences(tree) {
     file.text.split("\n").forEach((line, index) => {
       for (const [pattern, why] of patterns) {
         if (pattern.test(line)) problems.push(`${path}:${index + 1}  ${why}\n    ${line.trim()}`);
+      }
+      for (const [, target] of line.matchAll(/<include\b[^>]*>([^<]*)<\/include>/g)) {
+        const resolved = includeTarget(path, target);
+        if (tree.deleted.has(resolved) || !tree.tracked.has(resolved)) {
+          problems.push(
+            `${path}:${index + 1}  <include> of a file that no longer exists\n    ${line.trim()}`,
+          );
+        }
       }
     });
   }
@@ -548,7 +581,8 @@ async function main() {
   renameInTree(tree, name, slug);
   if (!keepExample) removeExample(tree);
 
-  const problems = scanForDanglingReferences(tree);
+  // Only meaningful once the example is gone; with it kept, these are live references.
+  const problems = keepExample ? [] : scanForDanglingReferences(tree);
   if (problems.length) {
     console.error("\nDangling references would remain. Nothing was written.\n");
     for (const problem of problems) console.error(`  ${problem}`);
@@ -595,6 +629,10 @@ async function main() {
       "\nStill mentions the scaffold by name (prose about the template, left as written):",
     );
     for (const { path, lines } of prose) console.log(`  ${path}:${lines.join(",")}`);
+  }
+  if (tree.rewriteDocs.size) {
+    console.log("\nDocs pages that lost a code excerpt (search for 'setup:' in each):");
+    for (const path of [...tree.rewriteDocs].sort()) console.log(`  ${path}`);
   }
   if (!keepExample) {
     const docs = mentionsAfter(tree, /\bprojects\b/i, true);

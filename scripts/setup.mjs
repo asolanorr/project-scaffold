@@ -512,9 +512,7 @@ function historyStep({ upstream, origin, branch }) {
     '       git add -A && git commit -m "chore: initialise project"',
   ];
   if (upstream) {
-    lines.push(
-      `     (remote 'upstream' already points at ${upstream}; leave it as it is)`,
-    );
+    lines.push(`     (remote 'upstream' already points at ${upstream}; leave it as it is)`);
     lines.push(
       origin
         ? `     (remote 'origin' is ${origin}; if that is not your new repository:)

@@ -489,7 +489,7 @@ function generateDropMigration() {
   const sql = readFileSync(join(ROOT, file), "utf8");
   // The migration must drop the example's table and nothing else.
   if (!/DROP TABLE "projects"/.test(sql)) fail(`${file} does not drop the projects table:\n${sql}`);
-  const otherDrops = [...sql.matchAll(/DROP (?:TABLE|TYPE|INDEX) "([^"]+)"/g)]
+  const otherDrops = [...sql.matchAll(/DROP (?:TABLE|TYPE|INDEX) (?:"public"\.)?"([^"]+)"/g)]
     .map((m) => m[1])
     .filter((n) => n !== "projects" && n !== "project_status");
   if (/CREATE |ALTER TABLE "(?!projects")/.test(sql) || otherDrops.length) {

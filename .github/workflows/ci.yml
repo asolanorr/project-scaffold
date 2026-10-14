@@ -48,6 +48,10 @@ jobs:
       # the next few minutes; @repo/env just needs 32 characters to boot.
       BETTER_AUTH_SECRET: ci-only-signing-key-never-used-outside-this-job
       BETTER_AUTH_URL: http://localhost:3000
+      # Placeholders, not credentials. @repo/env validates at import and
+      # next.config.ts imports it, so the build cannot even load its config
+      # without every required variable. Real values live in Vercel.
+      CRON_SECRET: ci-placeholder-cron-secret-not-real
 
     steps:
       - uses: actions/checkout@v4

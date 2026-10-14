@@ -59,6 +59,13 @@
     "db:seed": {
       "cache": false
     },
+    // `next typegen` (typecheck) and `next build` both write apps/docs/.next; run
+    // in parallel they race on .next/types. Serialise them. The web app is not
+    // listed: its typecheck is plain tsc and writes nothing under .next.
+    "@repo/docs#build": {
+      "dependsOn": ["^build", "typecheck"],
+      "outputs": [".next/**", "!.next/cache/**"]
+    },
     "//#typecheck": {}
   }
 }

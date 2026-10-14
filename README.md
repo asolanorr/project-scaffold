@@ -117,13 +117,16 @@ database on the same server.
 
 ## Starting your own project
 
-Clone the scaffold into a new folder, initialise it, then give the project its
-own repository while keeping the scaffold as `upstream`:
+The order matters: clone, **install**, initialise, fill in `.env`, then give the
+project its own repository while keeping the scaffold as `upstream`.
+`project:init` needs the installed packages (it runs `drizzle-kit`) and refuses
+to start, touching nothing, if they are missing.
 
 ```bash
 git clone <scaffold repo url> my-project && cd my-project
 pnpm install
 pnpm run project:init         # name, slug, keep or drop the example feature; deletes itself when done
+# fill in .env (project:init created it, every value blank), then:
 git add -A && git commit -m "chore: initialise project"
 git remote rename origin upstream
 git remote add origin <url of a new, EMPTY repository>

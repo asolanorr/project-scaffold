@@ -541,6 +541,8 @@ function historyStep({ upstream, origin, branch }) {
 function checklist(slug, remotes) {
   return `
 Manual checklist - none of this can be done from here
+Order for a new project: git clone, pnpm install, pnpm run project:init (done),
+then fill .env (step 6), then the steps below.
 ${historyStep(remotes)}
   2. Create a NEW Supabase project (not the scaffold's). Put its pooled URL
      (port 6543) in DATABASE_URL and its direct URL (port 5432) in DIRECT_URL.
@@ -564,6 +566,49 @@ ${historyStep(remotes)}
 
 // ------------------------------------------------------------------------ main
 
+// ------------------------------------------------------------------- preflight
+
+/**
+ * Everything this script needs from outside itself, checked before it writes a
+ * byte, so a missing tool can never leave a half-modified tree.
+ *
+ * External commands it runs, and where:
+ *   git ls-files / remote get-url / branch --show-current   always
+ *   pnpm --filter @repo/db exec drizzle-kit generate        only when the example is removed
+ * Installed packages it depends on: drizzle-kit (packages/db), reached through pnpm.
+ * Everything else is Node built-ins.
+ */
+const NOTHING_CHANGED = "Nothing was changed.";
+
+function preflightEnvironment() {
+  const git = spawnSync("git", ["rev-parse", "--is-inside-work-tree"], {
+    cwd: ROOT,
+    encoding: "utf8",
+  });
+  if (git.error || git.status !== 0) {
+    fail(`This script needs git on PATH and a git checkout to run in. ${NOTHING_CHANGED}`);
+  }
+  if (!existsSync(join(ROOT, "node_modules"))) {
+    fail(
+      `Dependencies are not installed (there is no node_modules). Run:\n\n  pnpm install\n\nthen run pnpm run project:init again. ${NOTHING_CHANGED}`,
+    );
+  }
+}
+
+/** Runs drizzle-kit for real (`--version` needs no database) rather than guessing at paths. */
+function preflightExampleRemoval() {
+  const probe = spawnSync("pnpm --filter @repo/db exec drizzle-kit --version", {
+    cwd: ROOT,
+    stdio: "ignore",
+    shell: true,
+  });
+  if (probe.status !== 0) {
+    fail(
+      `Removing the example generates a migration with drizzle-kit, and it does not run from packages/db. Run:\n\n  pnpm install\n\nthen run pnpm run project:init again (pnpm itself must be on PATH). ${NOTHING_CHANGED}`,
+    );
+  }
+}
+
 async function main() {
   const opts = parseArgs(process.argv.slice(2));
   if (opts.help) return console.log(HELP);
@@ -574,6 +619,7 @@ async function main() {
     console.log(`project:init already ran (package name is "${pkg.name}"). Nothing was changed.`);
     return;
   }
+  preflightEnvironment();
   if (existsSync(join(ROOT, ".env"))) {
     fail(
       ".env already exists and will not be overwritten. Move it aside and run project:init again.",
@@ -582,6 +628,7 @@ async function main() {
   if (!existsSync(join(ROOT, ".env.example"))) fail(".env.example is missing.");
 
   const { name, slug, keepExample } = await collectInputs(opts);
+  if (!keepExample) preflightExampleRemoval();
 
   const tree = new Tree(trackedFiles());
   renameInTree(tree, name, slug);

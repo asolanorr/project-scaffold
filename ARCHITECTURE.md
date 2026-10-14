@@ -1115,9 +1115,9 @@ drift out of date.
 
 Three viable mechanisms, in order of effort:
 
-1. **Clone and initialise** — `git clone` the scaffold into a new folder, run
-   `pnpm run project:init` (renames the project, optionally removes the example
-   feature, deletes itself), commit, `git remote rename origin upstream`, create
+1. **Clone and initialise** — `git clone` the scaffold into a new folder,
+   `pnpm install`, then `pnpm run project:init` (needs the install; renames the project, optionally removes the example
+   feature, deletes itself and writes a blank `.env` to fill in), commit, `git remote rename origin upstream`, create
    an **empty** repository for the project, add it as `origin` and push. Good
    enough to start, and the project keeps the scaffold's history. GitHub's "Use
    this template" button must not be used: it creates a repository with one new

@@ -17,6 +17,7 @@
     "db:migrate": "turbo run db:migrate -F @repo/db",
     "db:test:setup": "turbo run db:test:setup -F @repo/db",
     "db:seed": "turbo run db:seed -F @repo/auth",
+    "setup": "node scripts/setup.mjs",
     "prepare": "lefthook install"
   },
   "devDependencies": {

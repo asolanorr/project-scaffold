@@ -342,7 +342,7 @@ function removeExample(tree) {
     'const { db, files, users } = await import("@repo/db");',
   );
   tree.replace(seed, /const PROJECT_STATUSES[\s\S]*?const LIVE_PROJECT_COUNT = 22;\n\n/, "");
-  tree.replace(seed, "cascades to their projects and files,", "cascades to their files,");
+  tree.replace(seed, /their projects and\n\s*\/\/ files,/, "their files,");
   tree.replace(
     seed,
     'const otherId = await createSeedAccount(OTHER_EMAIL, "Other");',

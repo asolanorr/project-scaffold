@@ -99,11 +99,22 @@ async function collectInputs(opts) {
     );
   }
   const rl = complete ? null : createInterface({ input: process.stdin, output: process.stdout });
+  // Ctrl+C, Ctrl+Z/Ctrl+D or a closed pipe ends the input; without this Node just
+  // exits 0 with the question unanswered and nothing said.
+  const inputEnded = new Promise((_, reject) => {
+    rl?.once("close", () =>
+      reject(new SetupError(`Input ended before every question was answered. ${NOTHING_CHANGED}`)),
+    );
+  });
+  inputEnded.catch(() => {});
   try {
     const ask = async (question, validate, fallback) => {
       for (;;) {
         const raw = (
-          await rl.question(fallback ? `${question} [${fallback}]: ` : `${question}: `)
+          await Promise.race([
+            rl.question(fallback ? `${question} [${fallback}]: ` : `${question}: `),
+            inputEnded,
+          ])
         ).trim();
         const answer = raw || fallback || "";
         const problem = validate(answer);

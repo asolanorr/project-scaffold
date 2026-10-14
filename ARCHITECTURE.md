@@ -126,6 +126,10 @@ scaffold/
 └── README.md
 ```
 
+`projects` in this tree is the reference implementation (§9). If it was removed
+during project setup (`pnpm run project:init`), read it from the scaffold repo
+with `git show upstream/main:<path>`.
+
 ### Dependency rules (enforced by lint)
 
 ```
@@ -151,7 +155,11 @@ schema contracts, not the components.
 
 ### Schema definition
 
-`packages/db/src/schema/projects.ts`
+The sample below is the reference implementation's table,
+`packages/db/src/schema/projects.ts`. If the example feature was removed during
+project setup (`pnpm run project:init`), read it from the scaffold repo with
+`git show upstream/main:packages/db/src/schema/projects.ts`; the pattern holds
+for any table.
 
 ```ts
 import { isNull } from "drizzle-orm";
@@ -691,9 +699,12 @@ once, in whichever project needs it first, and then it moves into the scaffold.
 
 ## 9. The example CRUD
 
-A complete, working `projects` feature ships in the repo. Full stack, not a
-UI mockup with fake data — it runs against the real database on a fresh clone
-after `pnpm db:migrate && pnpm db:seed`.
+A complete, working `projects` feature ships in the scaffold repo: the
+reference implementation. If it was removed during project setup
+(`pnpm run project:init`), read it with `git show upstream/main:<path>`; the
+rest of this section describes it as shipped. Full stack, not a UI mockup with
+fake data — it runs against the real database on a fresh clone after
+`pnpm db:migrate && pnpm db:seed`.
 
 **Database layer**
 - `projects` table with a status enum, an owner foreign key, soft delete and
@@ -1090,6 +1101,7 @@ Fumadocs, MDX content, deployed as a separate Vercel project. Sections:
 4. **Recipes** — add a table, add a feature, add a protected route, add an
    email, add a background job
 5. **The example CRUD** — annotated walkthrough of the `projects` feature
+   (removed from the site together with the feature)
 6. **Deployment** — Vercel setup, environment variables, migration strategy
 7. **Decision log (ADRs)** — why Drizzle over Prisma, why Server Actions over
    tRPC, why Better Auth over Supabase Auth
@@ -1103,9 +1115,14 @@ drift out of date.
 
 Three viable mechanisms, in order of effort:
 
-1. **GitHub template repository** — zero work, "Use this template", then a
-   `setup` script renames the project, rewrites the README and clears git
-   history. Good enough to start.
+1. **Clone and initialise** — `git clone` the scaffold into a new folder,
+   `pnpm install`, then `pnpm run project:init` (needs the install; renames the project, optionally removes the example
+   feature, deletes itself and writes a blank `.env` to fill in), commit, `git remote rename origin upstream`, create
+   an **empty** repository for the project, add it as `origin` and push. Good
+   enough to start, and the project keeps the scaffold's history. GitHub's "Use
+   this template" button must not be used: it creates a repository with one new
+   commit and no shared history, so `git merge upstream/main` later fails with
+   "refusing to merge unrelated histories" and mechanism 3 is lost for good.
 2. **`create-<name>-app` CLI** — a small package that prompts for project
    name, database provider and optional modules (payments, email, org
    support), then writes only the selected pieces. Worth building after three
@@ -1114,26 +1131,27 @@ Three viable mechanisms, in order of effort:
    projects can pull foundation fixes. Powerful, but demands discipline about
    what belongs upstream.
 
-Start with 1, move to 2 when the manual steps become annoying.
+Start with 1, move to 2 when the manual steps become annoying. Mechanism 3 rides
+on 1: it only works because the project shares history with the scaffold.
 
-**Removing the example feature.** Whichever mechanism runs the setup script,
-deleting `projects` (§9) is not just deleting `features/projects`, its routes,
-its table and migration, and its message keys. Two shared files carry entries
-scoped to it that nothing enforces except a human remembering to look:
-`apps/web/src/lib/routes.ts` and `apps/web/src/lib/cache-tags.ts`. A stale
-`cacheTags.projects`/`cacheTags.project` export is dead code — harmless, easy
-to spot later. A stale path export in `routes.ts` is not: an audit found the
-dashboard's `href="/projects"` written as a plain string outside that file,
-which went undetected because typedRoutes was silently inactive (see the
-`tsconfig.json` note in §4's sibling discussion of generated types), and
-`pnpm check` — lint, typecheck and the full test suite — passed anyway with a
-dead link shipped. With typedRoutes correctly wired and `routes.ts` the only
-file allowed to hold a path literal (see its own file header, and the rule in
-AGENTS.md), the setup script's omission becomes exactly the failure it should
-be: delete the feature, leave its entry in `routes.ts`, and the build does not
-compile. Verified on a throwaway branch by deleting `features/projects` and
-its routes and confirming `routes.ts` fails to build; the branch was discarded
-and the example stays in the repo.
+**Removing the example feature.** `pnpm run project:init` removes it when
+asked. That is more than deleting `features/projects`: its routes, table (a new
+drop migration is generated, never an edit to an applied one), message keys,
+seed data and e2e spec go too, and two shared files carry entries scoped to it
+that nothing enforces except a human remembering to look: `apps/web/src/lib/routes.ts`
+and `apps/web/src/lib/cache-tags.ts`. A stale cache-tag export is dead code. A
+stale path export in `routes.ts` is not: an audit found the dashboard's
+`href="/projects"` written as a plain string outside that file, which went
+undetected because typedRoutes was silently inactive, and `pnpm check` passed
+anyway with a dead link shipped. With typedRoutes wired and `routes.ts` the
+only file allowed to hold a path literal, leaving an entry behind after the
+feature is deleted fails the build. The script edits those two files itself and
+refuses to write anything if a reference to the feature would remain.
+
+Prose is deliberately not rewritten per project. Passages that mention the
+example say how to read it from the scaffold repo when it is gone
+(`git show upstream/main:<path>`), and the docs site renders a note linking
+there instead of an embedded sample whose source was removed.
 
 ---
 

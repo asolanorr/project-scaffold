@@ -26,7 +26,7 @@ const toSql = (clause: ReturnType<typeof ownedBy>) => dialect.sqlToQuery(clause)
 // A minimal stand-in for an ownable table. The assertions are on generated
 // SQL, so any table with id, owner_id and deleted_at exercises the same
 // predicate — packages/auth has no business knowing about an app-level
-// feature table like `projects`.
+// feature table like `files`.
 const widgets = pgTable("widgets", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull(),

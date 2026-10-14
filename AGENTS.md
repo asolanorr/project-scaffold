@@ -126,11 +126,15 @@ These are non-negotiable. Violating one means the change gets rejected.
    bypass. A `Button`/`Link` href, a `router.push`/`replace`/`prefetch` call,
    a `redirect()`, a `localizedPath()` call: all take their path from
    `lib/routes.ts`. A dynamic segment goes through a helper function exported
-   from there (`projectPath(id)`, not a template literal at the call site).
+   from there (`adminUserPath(id)`, not a template literal at the call site).
 
 ---
 
 ## The canonical mutation
+
+The two examples below use the `projects` feature as their subject. It is the
+reference implementation and may be absent from this checkout (see "Adding a
+feature"); the shape is what to copy, whatever the feature is called.
 
 Copy this shape for every write. Six steps, always in this order.
 
@@ -209,9 +213,13 @@ compiling.
    user flow.
 8. Run `pnpm check`.
 
-The `projects` feature is the reference implementation. When in doubt about a
-pattern, read that folder rather than inventing something new. Three things it
-does that are easy to get wrong elsewhere:
+The reference implementation is `features/projects`. If it was removed during
+project setup (`pnpm run project:init`), read it from the scaffold repo with
+`git show upstream/main:<path>` (for example
+`apps/web/src/features/projects/actions.ts`). Do not look for it in this
+checkout and do not recreate it. When in doubt about a pattern, read the
+reference rather than inventing something new. Three things it does that are
+easy to get wrong elsewhere:
 
 - **Import row schemas from `@repo/db/schema` in client code**, never from
   `@repo/db` — the barrel carries the Postgres client.

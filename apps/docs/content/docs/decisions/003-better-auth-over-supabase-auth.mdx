@@ -38,8 +38,8 @@ the rate limiter and the origin check live in the router:
 
 ## Consequences
 
-- **Users are a table.** `projects.owner_id` references `users.id` with a
-  real foreign key; the ownership predicate is a join, not a JWT claim.
+- **Users are a table.** Feature tables reference `users.id` with a real
+  foreign key (`owner_id`, in the example feature's table); the ownership predicate is a join, not a JWT claim.
 - **No vendor tie at the auth layer.** Moving off Supabase moves the auth
   tables along with everything else. Supabase Auth would have had to be
   migrated separately, users re-invited or passwords reset.

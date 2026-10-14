@@ -27,6 +27,8 @@ const SCAFFOLD_SLUG = "scaffold";
 
 class SetupError extends Error {}
 
+let wroteFiles = false;
+
 const fail = (message) => {
   throw new SetupError(message);
 };
@@ -574,6 +576,7 @@ async function main() {
     }).stdout?.trim() || "<scaffold-url>";
 
   writeTree(tree);
+  wroteFiles = true;
   writeFileSync(join(ROOT, ".env"), envText, { flag: "wx" });
 
   const migration = keepExample ? null : generateDropMigration();
@@ -617,6 +620,11 @@ async function main() {
 main().catch((error) => {
   if (error instanceof SetupError) {
     console.error(`\nsetup: ${error.message}`);
+    if (wroteFiles) {
+      console.error(
+        "\nFiles were already written. To start over (history is untouched):\n  git restore . && git clean -fd && rm .env",
+      );
+    }
   } else {
     console.error(error);
   }

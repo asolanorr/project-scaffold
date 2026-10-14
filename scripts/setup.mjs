@@ -344,7 +344,7 @@ function removeExample(tree) {
     'const { db, files, users } = await import("@repo/db");',
   );
   tree.replace(seed, /const PROJECT_STATUSES[\s\S]*?const LIVE_PROJECT_COUNT = 22;\n\n/, "");
-  tree.replace(seed, /their projects and\n\s*\/\/ files,/, "their files,");
+  tree.replace(seed, /their projects and\n\s*\/\/ files,/, "their files,\n  //");
   tree.replace(
     seed,
     'const otherId = await createSeedAccount(OTHER_EMAIL, "Other");',
@@ -353,8 +353,8 @@ function removeExample(tree) {
   tree.replace(seed, / {2}const liveProjects = [\s\S]*?\n {2}\]\);\n\n/, "");
   tree.replace(
     seed,
-    /Seeded \$\{LIVE_PROJECT_COUNT \+ 2\} projects and 1 pending file\./,
-    "Seeded 1 pending file.",
+    /`Seeded \$\{LIVE_PROJECT_COUNT \+ 2\} projects and 1 pending file\.`/,
+    '"Seeded 1 pending file."',
   );
   tree.replace(seed, "owns the projects above", "owns the pending file above");
   tree.replace(seed, "owns one project of their own;", "a second account with no data of its own;");
@@ -443,9 +443,7 @@ function blankEnv(example) {
       const assignment = line.match(/^([A-Z][A-Z0-9_]*)=/);
       if (assignment) return `${assignment[1]}=`;
       // A comment that embeds user:password@host is a credential, even if a default one.
-      if (line.startsWith("#") && /:\/\/[^\s/@]*:[^\s/@]*@/.test(line)) {
-        return "# (example connection string omitted - see .env.example)";
-      }
+      if (line.startsWith("#")) return line.replace(/\/\/[^\s/@:]*:[^\s/@]*@/g, "//USER:PASSWORD@");
       return line;
     })
     .join("\n")
@@ -477,10 +475,11 @@ function writeTree(tree) {
 
 function generateDropMigration() {
   const before = new Set(readdirSync(join(ROOT, "packages/db/migrations")));
+  // One command string, not a shell plus an args array: pnpm is a .cmd shim on
+  // Windows, and Node deprecates passing args to a shell.
   const result = spawnSync(
-    "pnpm",
-    ["--filter", "@repo/db", "exec", "drizzle-kit", "generate", "--name", "drop_projects"],
-    { cwd: ROOT, stdio: "inherit", shell: process.platform === "win32" },
+    "pnpm --filter @repo/db exec drizzle-kit generate --name drop_projects",
+    { cwd: ROOT, stdio: "inherit", shell: true },
   );
   if (result.status !== 0) fail("drizzle-kit generate failed; see its output above.");
   const created = readdirSync(join(ROOT, "packages/db/migrations")).filter(

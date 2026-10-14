@@ -444,7 +444,10 @@ function scanForDanglingReferences(tree) {
       for (const [pattern, why] of patterns) {
         if (pattern.test(line)) problems.push(`${path}:${index + 1}  ${why}\n    ${line.trim()}`);
       }
-      for (const [, target] of line.matchAll(/<include\b[^>]*>([^<]*)<\/include>/g)) {
+      // Only .mdx pages are compiled by the docs site; .md files merely quote the syntax.
+      for (const [, target] of (path.endsWith(".mdx") ? line : "").matchAll(
+        /<include\b[^>]*>([^<]*)<\/include>/g,
+      )) {
         const resolved = includeTarget(path, target);
         if (tree.deleted.has(resolved) || !tree.tracked.has(resolved)) {
           problems.push(

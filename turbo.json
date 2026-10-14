@@ -41,7 +41,10 @@
       "dependsOn": ["^typecheck"]
     },
     "test": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      // Hashed, not just passed through: the database guard reads these, so a cache
+      // hit must not replay a pass from a run that pointed somewhere else.
+      "env": ["DATABASE_URL", "DIRECT_URL", "TEST_DATABASE_URL"]
     },
     "db:generate": {
       "cache": false,

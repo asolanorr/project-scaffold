@@ -2,7 +2,7 @@
  * Every cache tag in the application, as functions.
  *
  * No raw tag strings anywhere, for the same reason as no raw paths: a typo in a
- * tag is invisible. `updateTag("porjects:u_1")` throws no error, matches no
+ * tag is invisible. `updateTag("flies:u_1")` throws no error, matches no
  * cache entry, and the stale page just keeps being served.
  *
  * Per-user tags take the user id as an argument because a cached function must
@@ -15,7 +15,7 @@
  * Invalidate with `updateTag(tag)` when the user must see their own write
  * immediately, or `revalidateTag(tag, "max")` when background staleness is
  * fine. Never `revalidatePath` — with a [locale] segment and route groups the
- * real route is `/[locale]/(app)/projects`, so `revalidatePath("/projects")`
+ * real route is `/[locale]/(app)/dashboard`, so `revalidatePath("/dashboard")`
  * matches nothing and fails silently, and the English user sees their change
  * while the Spanish one does not.
  */

@@ -17,7 +17,7 @@
 
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, rmdirSync, rmSync, writeFileSync } from "node:fs";
-import { dirname, join, posix } from "node:path";
+import { dirname, join } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { fileURLToPath } from "node:url";
 
@@ -138,6 +138,8 @@ async function collectInputs(opts) {
 const NEVER_TOUCH = [
   "pnpm-lock.yaml",
   SELF,
+  // Names the scaffold repo on purpose; renaming it would break every link back.
+  "apps/docs/upstream.ts",
   // Applied migrations are history: rewriting one breaks every database that ran it.
   /^packages\/db\/migrations\//,
   /^packages\/ui\/src\/fonts\//,
@@ -157,13 +159,8 @@ class Tree {
   /** path -> { text, crlf, original } for every tracked text file. */
   files = new Map();
   deleted = new Set();
-  /** Every tracked path, text or not: what an <include> may legitimately point at. */
-  tracked;
-  /** Docs pages that lost a code excerpt and need a human to rewrite them. */
-  rewriteDocs = new Set();
 
   constructor(paths) {
-    this.tracked = new Set(paths);
     for (const path of paths) {
       if (skipped(path)) continue;
       const buffer = readFileSync(join(ROOT, path));
@@ -296,18 +293,6 @@ function removeExample(tree) {
     / {2}\/\*\* Every project belonging to one user\. \*\/\n {2}projects: [^\n]*\n {2}\/\*\* One project, for the detail view\. \*\/\n {2}project: [^\n]*\n/,
     "",
   );
-  // Comment examples that named the feature; keep them meaningful.
-  tree.replace(tags, "porjects:u_1", "flies:u_1");
-  tree.replace(tags, "/[locale]/(app)/projects", "/[locale]/(app)/dashboard");
-  tree.replace(tags, 'revalidatePath("/projects")', 'revalidatePath("/dashboard")');
-
-  const tagsTest = "apps/web/src/lib/__tests__/cache-tags.test.ts";
-  tree.replace(tagsTest, "cacheTags.projects(", "cacheTags.files(", { all: true });
-  tree.replace(tagsTest, "cacheTags.project(", "cacheTags.file(", { all: true });
-  tree.replace(tagsTest, '"projects:u_1"', '"files:u_1"');
-  tree.replace(tagsTest, '"projects:u_2"', '"files:u_2"');
-  tree.replace(tagsTest, "a user's projects", "a user's files");
-
   const dashboard = "apps/web/src/app/[locale]/(app)/dashboard/page.tsx";
   tree.replace(
     dashboard,
@@ -330,17 +315,6 @@ function removeExample(tree) {
       delete data.dashboard.projectsLink;
     });
   }
-
-  tree.replace(
-    "apps/web/src/app/[locale]/providers.tsx",
-    "(`/projects/[id]`)",
-    "(`/admin/users/[id]`)",
-  );
-  tree.replace(
-    "packages/auth/src/__tests__/ownership.test.ts",
-    "feature table like `projects`",
-    "feature table like `files`",
-  );
 
   const seed = "packages/auth/src/seed.ts";
   tree.replace(
@@ -378,32 +352,7 @@ function removeExample(tree) {
     if (!meta.pages.includes("example-crud")) fail("meta.json: expected an example-crud entry.");
     meta.pages = meta.pages.filter((page) => page !== "example-crud");
   });
-  tree.replace(
-    "apps/docs/content/docs/getting-started.mdx",
-    "Sign up at `/sign-up`, land on `/dashboard`, open `/projects`.",
-    "Sign up at `/sign-up` and land on `/dashboard`.",
-  );
-
-  // The docs site embeds source files with <include>. One pointing at a deleted
-  // file fails the docs build, so each is replaced by an MDX comment: invisible
-  // to readers, greppable, and the page is reported for a human to rewrite.
-  for (const [path] of tree.live()) {
-    if (!path.endsWith(".mdx")) continue;
-    const next = tree.get(path).replace(INCLUDE_LINE, (line, target) => {
-      if (!tree.deleted.has(includeTarget(path, target))) return line;
-      tree.rewriteDocs.add(path);
-      return "{/* setup: the example code quoted here was removed with the projects feature */}\n";
-    });
-    tree.set(path, next);
-  }
 }
-
-/** One `<include ...>relative/path#region</include>` per line, as the docs write them. */
-const INCLUDE_LINE = /^<include\b[^>]*>([^<\n]*)<\/include>\n/gm;
-
-/** Repo-relative path an include resolves to (MDX escapes `_` as `\_`). */
-const includeTarget = (mdxPath, target) =>
-  posix.normalize(posix.join(posix.dirname(mdxPath), target.split("#")[0].replaceAll("\\_", "_")));
 
 // --------------------------------------------------------------- dangling scan
 
@@ -439,21 +388,12 @@ const isDoc = (path) => /\.(?:md|mdx)$/.test(path);
 function scanForDanglingReferences(tree) {
   const problems = [];
   for (const [path, file] of tree.live()) {
+    // Lists the example's paths on purpose (docs includes of them degrade to a note).
+    if (path === "apps/docs/upstream.ts") continue;
     const patterns = isDoc(path) ? DOC_HARD_PATTERNS : HARD_PATTERNS;
     file.text.split("\n").forEach((line, index) => {
       for (const [pattern, why] of patterns) {
         if (pattern.test(line)) problems.push(`${path}:${index + 1}  ${why}\n    ${line.trim()}`);
-      }
-      // Only .mdx pages are compiled by the docs site; .md files merely quote the syntax.
-      for (const [, target] of (path.endsWith(".mdx") ? line : "").matchAll(
-        /<include\b[^>]*>([^<]*)<\/include>/g,
-      )) {
-        const resolved = includeTarget(path, target);
-        if (tree.deleted.has(resolved) || !tree.tracked.has(resolved)) {
-          problems.push(
-            `${path}:${index + 1}  <include> of a file that no longer exists\n    ${line.trim()}`,
-          );
-        }
       }
     });
   }
@@ -574,7 +514,9 @@ async function main() {
     return;
   }
   if (existsSync(join(ROOT, ".env"))) {
-    fail(".env already exists and will not be overwritten. Move it aside and run project:init again.");
+    fail(
+      ".env already exists and will not be overwritten. Move it aside and run project:init again.",
+    );
   }
   if (!existsSync(join(ROOT, ".env.example"))) fail(".env.example is missing.");
 
@@ -633,14 +575,12 @@ async function main() {
     );
     for (const { path, lines } of prose) console.log(`  ${path}:${lines.join(",")}`);
   }
-  if (tree.rewriteDocs.size) {
-    console.log("\nDocs pages that lost a code excerpt (search for 'setup:' in each):");
-    for (const path of [...tree.rewriteDocs].sort()) console.log(`  ${path}`);
-  }
   if (!keepExample) {
     const docs = mentionsAfter(tree, /\bprojects\b/i, true);
     if (docs.length) {
-      console.log('\nDocs that still talk about the "projects" example (not rewritten):');
+      console.log(
+        '\nDocs that still mention the "projects" example (worded to hold with or without it):',
+      );
       for (const { path, lines } of docs) console.log(`  ${path} (${lines.length} lines)`);
     }
   }
@@ -659,7 +599,7 @@ async function main() {
 
 main().catch((error) => {
   if (error instanceof SetupError) {
-    console.error(`\nsetup: ${error.message}`);
+    console.error(`\nproject:init: ${error.message}`);
     if (wroteFiles) {
       console.error(
         "\nFiles were already written. To start over (history is untouched):\n  git restore . && git clean -fd && rm .env",

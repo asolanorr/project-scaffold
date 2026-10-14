@@ -9,12 +9,12 @@ description: Invalidate by what the data is, never by where it is shown.
 
 `cacheComponents` is on: reads opt into caching with `"use cache"`, and a
 mutation has to invalidate what it changed. Next offers two ways.
-`revalidatePath("/projects")` invalidates a route. `updateTag(tag)` (and
+`revalidatePath("/dashboard")` invalidates a route. `updateTag(tag)` (and
 `revalidateTag(tag, "max")` for background staleness) invalidates every cache
 entry that declared the tag.
 
 This app's routes are not what they look like. The real route for the
-projects list is `/[locale]/(app)/projects`; `revalidatePath("/projects")`
+dashboard is `/[locale]/(app)/dashboard`; `revalidatePath("/dashboard")`
 matches nothing and fails silently, so the English user sees their new
 record and the Spanish user does not. A route group added later, or a page
 moved, breaks it again, and nothing in the type system notices.
@@ -37,15 +37,15 @@ A read declares what it depends on:
 - **Invalidation is immune to route structure**, locale prefixes and folder
   moves. A tag describes data; a path describes a URL, and the URL is the
   thing most likely to change.
-- **Per-user tags force the purity rule.** `cacheTags.projects(userId)` cannot
+- **Per-user tags force the purity rule.** `cacheTags.files(userId)` cannot
   be built without a user id, which cannot come from the session inside a
   `"use cache"` function without violating the rule that such functions take
   the user as a parameter. The tag design makes the safe shape the easy shape.
   Getting this wrong serves one user's data to another — an authorization
   failure no permission check catches, because the code is right and the
   cache is wrong.
-- **Two granularities, on purpose.** `projects(userId)` for the list,
-  `project(id)` for the detail. A mutation touches both. Over-invalidating is
+- **Two granularities, on purpose.** `files(userId)` for the list,
+  `file(id)` for the detail. A mutation touches both. Over-invalidating is
   a performance cost; under-invalidating is a correctness bug, so when in
   doubt, tag more.
 - **Tests can assert on tags.** The query tests check that the right tag was

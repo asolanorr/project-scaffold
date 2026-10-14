@@ -27,7 +27,7 @@ declare module "react-aria-components" {
  *
  * `useRouter` comes from `next/navigation`, not next-intl's wrapper: the
  * wrapper reads `usePathname()`, which on a route with an unknown segment
- * (`/projects/[id]`) is request data, and reading it here — above every
+ * (`/admin/users/[id]`) is request data, and reading it here — above every
  * Suspense boundary — would stop such routes from prerendering at all.
  *
  * `Toaster` mounts the one toast region.

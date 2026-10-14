@@ -22,7 +22,10 @@ A code block that shows repository code is an `<include>`:
 - `__` in a path must be escaped as `\_\_` — the path is markdown-parsed and
   would otherwise become emphasis (`__tests__` → `\_\_tests\_\_`).
 - A missing file or region fails the build. That is the feature: a moved
-  file breaks the docs instead of leaving a stale sample behind.
+  file breaks the docs instead of leaving a stale sample behind. One exception:
+  the sources the example feature owns (`REMOVABLE_SOURCES` in `upstream.ts`)
+  may be deleted by `pnpm run project:init`; an include of one renders a note
+  linking to the scaffold repo instead (`source.config.ts`).
 
 Two pages are whole files from the repository: `architecture.mdx` includes
 `ARCHITECTURE.md` and `deployment.mdx` includes `docs/deployment.md`. Edit
@@ -31,8 +34,8 @@ those, not the MDX.
 ## Structure
 
 `meta.json` in each folder fixes the order. Sections follow ARCHITECTURE.md
-§13: getting started, architecture, conventions, recipes, the example CRUD,
-deployment, decision log. A new ADR copies the newest one and keeps its four
+§13: getting started, architecture, conventions, recipes, the example CRUD
+(deleted with the feature), deployment, decision log. A new ADR copies the newest one and keeps its four
 parts: context, decision, consequences, when to revisit.
 
 ## What the site is not

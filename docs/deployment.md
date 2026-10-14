@@ -116,11 +116,11 @@ Repository → Settings → Secrets and variables → Actions.
 - [ ] Push a branch, open a pull request. Expected order: **CI** runs on the
       push; Vercel builds the preview; when Vercel reports it ready, **E2E**
       starts against the preview URL and passes.
-- [ ] Open the preview, sign up, create a project. The account lands in the
+- [ ] Open the preview, sign up and open `/dashboard`. The account lands in the
       preview's database, not production.
 - [ ] Merge. Production deploys, migrations run, the E2E workflow does **not**
       run (it targets previews only).
-- [ ] In production: sign up works, `/projects` works, and the browser console
+- [ ] In production: sign up works, `/dashboard` loads, and the browser console
       shows no Content-Security-Policy violations.
 
 ## 6. Later: the docs site

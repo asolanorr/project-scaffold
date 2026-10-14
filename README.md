@@ -40,9 +40,15 @@ pnpm dev                      # http://localhost:3000
 their credentials:
 
 ```text
-owner@seed.local  /  seed-password-123   — owns a paginated list of projects
-other@seed.local  /  seed-password-123   — owns one project of their own
+owner@seed.local  /  seed-password-123
+other@seed.local  /  seed-password-123
 ```
+
+With the example feature present, which is the default, the owner owns a
+paginated list of projects and `other` owns one project of their own. If the
+example was removed during project setup (`pnpm run project:init`), the seed
+creates the same two accounts and no projects, and the paragraph below does not
+apply.
 
 Sign in at `/sign-in` as `owner@seed.local` to see the populated, paginated
 `/projects` list. Delete one from the list and undo it from the toast that
@@ -137,7 +143,7 @@ pnpm db:test:setup    # create + migrate scaffold_test (pnpm test does this itse
 
 `pnpm dev` also serves the docs site at <http://localhost:3001>: getting
 started, the architecture, conventions, recipes, a walkthrough of the
-`projects` feature, deployment, and the decision log. Every code sample in it
+example `projects` feature (while it is present), deployment, and the decision log. Every code sample in it
 is included from the real source at build time, so it cannot drift.
 
 ## Layout

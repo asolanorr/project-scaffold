@@ -39,7 +39,7 @@ Authorization stays where it is:
 - **Closed by default.** If a key leaks, or someone adds a Supabase client
   feature in a hurry, the tables answer nothing. Opening one is a policy in
   a migration, in a pull request, on purpose.
-- **Authorization has one home and one test suite.** The projects tests
+- **Authorization has one home and one test suite.** Every feature's ownership tests
   cover "authenticated but not the owner" against a real Postgres; there is
   no second place to keep in sync.
 - **The role matters.** The bypass depends on the app's connection role

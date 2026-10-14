@@ -1115,10 +1115,14 @@ drift out of date.
 
 Three viable mechanisms, in order of effort:
 
-1. **GitHub template repository** — zero work, "Use this template", then a
-   `project:init` script (`pnpm run project:init`) renames the project and
-   optionally removes the example feature, then deletes itself. Good enough to
-   start.
+1. **Clone and initialise** — `git clone` the scaffold into a new folder, run
+   `pnpm run project:init` (renames the project, optionally removes the example
+   feature, deletes itself), commit, `git remote rename origin upstream`, create
+   an **empty** repository for the project, add it as `origin` and push. Good
+   enough to start, and the project keeps the scaffold's history. GitHub's "Use
+   this template" button must not be used: it creates a repository with one new
+   commit and no shared history, so `git merge upstream/main` later fails with
+   "refusing to merge unrelated histories" and mechanism 3 is lost for good.
 2. **`create-<name>-app` CLI** — a small package that prompts for project
    name, database provider and optional modules (payments, email, org
    support), then writes only the selected pieces. Worth building after three
@@ -1127,7 +1131,8 @@ Three viable mechanisms, in order of effort:
    projects can pull foundation fixes. Powerful, but demands discipline about
    what belongs upstream.
 
-Start with 1, move to 2 when the manual steps become annoying.
+Start with 1, move to 2 when the manual steps become annoying. Mechanism 3 rides
+on 1: it only works because the project shares history with the scaffold.
 
 **Removing the example feature.** `pnpm run project:init` removes it when
 asked. That is more than deleting `features/projects`: its routes, table (a new

@@ -484,27 +484,81 @@ function generateDropMigration() {
   return file;
 }
 
-function checklist(slug, upstream) {
+const gitOut = (...args) => {
+  const result = spawnSync("git", args, { cwd: ROOT, encoding: "utf8" });
+  return result.status === 0 ? result.stdout.trim() : "";
+};
+
+/** The remotes as they are now; this script never changes them. */
+const gitRemotes = () => ({
+  upstream: gitOut("remote", "get-url", "upstream"),
+  origin: gitOut("remote", "get-url", "origin"),
+  branch: gitOut("branch", "--show-current") || "main",
+});
+
+/**
+ * Step 1 of the checklist. The project must share history with the scaffold so
+ * `git merge upstream/main` works later, which is why it is a clone and never
+ * GitHub's "Use this template" (one new commit, no shared history).
+ */
+function historyStep({ upstream, origin, branch }) {
+  const fresh = "<url of your new, EMPTY repository>";
+  const lines = [
+    "  1. Give the project its own repository and keep the scaffold as 'upstream'.",
+    "     Never create it with GitHub's 'Use this template' button: that makes a repo",
+    "     with one new commit and no shared history, so `git merge upstream/main`",
+    "     later fails with 'refusing to merge unrelated histories'.",
+    "",
+    '       git add -A && git commit -m "chore: initialise project"',
+  ];
+  if (upstream) {
+    lines.push(
+      `     (remote 'upstream' already points at ${upstream}; leave it as it is)`,
+    );
+    lines.push(
+      origin
+        ? `     (remote 'origin' is ${origin}; if that is not your new repository:)
+       git remote set-url origin ${fresh}`
+        : `       git remote add origin ${fresh}`,
+    );
+  } else if (origin) {
+    lines.push(
+      `       git remote rename origin upstream      # origin is ${origin}`,
+      `       git remote add origin ${fresh}`,
+    );
+  } else {
+    lines.push(
+      "       git remote add upstream <scaffold repo url>",
+      `       git remote add origin ${fresh}`,
+    );
+  }
+  lines.push(
+    `       git push -u origin ${branch}`,
+    "     Check that history is shared; this must say 'Already up to date.':",
+    "       git fetch upstream && git merge upstream/main",
+  );
+  return lines.join("\n");
+}
+
+function checklist(slug, remotes) {
   return `
 Manual checklist - none of this can be done from here
-  1. Create a NEW Supabase project (not the scaffold's). Put its pooled URL
+${historyStep(remotes)}
+  2. Create a NEW Supabase project (not the scaffold's). Put its pooled URL
      (port 6543) in DATABASE_URL and its direct URL (port 5432) in DIRECT_URL.
-  2. Create two Vercel projects, "${slug}-web" (Root Directory apps/web) and
+  3. Create two Vercel projects, "${slug}-web" (Root Directory apps/web) and
      "${slug}-docs" (Root Directory apps/docs). Turn Deployment Protection ON
      for both. See docs/deployment.md.
-  3. Add VERCEL_AUTOMATION_BYPASS_SECRET to the GitHub repository secrets
+  4. Add VERCEL_AUTOMATION_BYPASS_SECRET to the GitHub repository secrets
      (the E2E workflow cannot reach a protected preview without it).
-  4. In Vercel, set ALL required server variables for BUILD as well as runtime,
+  5. In Vercel, set ALL required server variables for BUILD as well as runtime,
      not just runtime: DATABASE_URL, DIRECT_URL, BETTER_AUTH_SECRET,
      BETTER_AUTH_URL, CRON_SECRET. The build imports @repo/env, so a missing
      one fails the build before any code runs.
-  5. Fill .env and .env.example together: a variable added to one belongs in
+  6. Fill .env and .env.example together: a variable added to one belongs in
      the other, in the same change. .env.example holds placeholders only.
-  6. Rotate anything shared with the scaffold: BETTER_AUTH_SECRET, CRON_SECRET
+  7. Rotate anything shared with the scaffold: BETTER_AUTH_SECRET, CRON_SECRET
      and any key that was ever pasted into CI, chat or a shared vault.
-  7. Keep a way back to the scaffold:
-       git remote add upstream ${upstream}
-     (point "origin" at your new repository first if it still names the scaffold)
   8. Decide who owns the repository at handoff: organisation or personal
      account, collaborators, branch protection, and re-create secrets there.
 `;
@@ -556,11 +610,7 @@ async function main() {
     return;
   }
 
-  const upstream =
-    spawnSync("git", ["remote", "get-url", "origin"], {
-      cwd: ROOT,
-      encoding: "utf8",
-    }).stdout?.trim() || "<scaffold-url>";
+  const remotes = gitRemotes();
 
   writeTree(tree);
   wroteFiles = true;
@@ -594,7 +644,7 @@ async function main() {
       for (const { path, lines } of docs) console.log(`  ${path} (${lines.length} lines)`);
     }
   }
-  console.log(checklist(slug, upstream));
+  console.log(checklist(slug, remotes));
 
   // Last step: remove every trace of this script. The package.json entry is
   // re-read from disk, not taken from the plan, so a failure above leaves the

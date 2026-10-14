@@ -117,9 +117,25 @@ database on the same server.
 
 ## Starting your own project
 
+Clone the scaffold into a new folder, initialise it, then give the project its
+own repository while keeping the scaffold as `upstream`:
+
 ```bash
+git clone <scaffold repo url> my-project && cd my-project
+pnpm install
 pnpm run project:init         # name, slug, keep or drop the example feature; deletes itself when done
+git add -A && git commit -m "chore: initialise project"
+git remote rename origin upstream
+git remote add origin <url of a new, EMPTY repository>
+git push -u origin main
 ```
+
+Later, `git fetch upstream && git merge upstream/main` pulls foundation fixes.
+
+**Do not use GitHub's "Use this template" button.** It creates a repository
+with a single new commit and no shared history with the scaffold, so that merge
+fails with "refusing to merge unrelated histories" and the project can never
+take an upstream fix.
 
 `pnpm setup` is a pnpm built-in (it configures pnpm's PATH) and is not this script.
 

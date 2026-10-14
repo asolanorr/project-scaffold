@@ -120,3 +120,103 @@ jobs:
       # pnpm-workspace.yaml, each with the reason; nothing else is ignored.
       - name: Audit (production dependencies, moderate+)
         run: pnpm audit --prod --audit-level=moderate
+
+  # Runs the one-shot setup script against a clean checkout, both ways, then
+  # holds the result to the same bar as the scaffold itself. It guards the
+  # script against drift: an edit to a file the script rewrites fails here
+  # instead of in somebody's first five minutes. Every step skips itself once
+  # the script has been run and deleted, which is the state of every derived
+  # project. (A job-level `if` cannot see the checkout, hence the gate step.)
+  setup-script:
+    name: Setup script (${{ matrix.example }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    strategy:
+      fail-fast: false
+      matrix:
+        example: [declined, kept]
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      # The test database is named after the slug the script is given
+      # (ci-check_test) and created by the test run itself.
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/postgres
+      DIRECT_URL: postgres://postgres:postgres@localhost:5432/postgres
+      BETTER_AUTH_SECRET: ci-only-signing-key-never-used-outside-this-job
+      BETTER_AUTH_URL: http://localhost:3000
+      CRON_SECRET: ci-placeholder-cron-secret-not-real
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Is there a setup script to verify?
+        id: gate
+        run: |
+          if [ -e scripts/setup.mjs ]; then echo "run=true" >> "$GITHUB_OUTPUT"; fi
+
+      - uses: pnpm/action-setup@v4
+        if: steps.gate.outputs.run == 'true'
+
+      - uses: actions/setup-node@v4
+        if: steps.gate.outputs.run == 'true'
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Run setup
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          if [ "${{ matrix.example }}" = "kept" ]; then flag=--keep-example; else flag=--no-example; fi
+          pnpm run setup -- --name "CI Check" --slug ci-check "$flag"
+
+      - name: Setup removed itself and wrote a blank .env
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          test ! -e scripts/setup.mjs
+          if grep -q '"setup"' package.json; then echo "package.json still has a setup script"; exit 1; fi
+          test -f .env
+          if grep -E '^[A-Z][A-Z0-9_]*=.+' .env; then echo ".env carries a value"; exit 1; fi
+
+      - name: Running setup again changes nothing
+        if: steps.gate.outputs.run == 'true'
+        run: |
+          git status --porcelain > /tmp/before.status
+          git diff | sha256sum > /tmp/before.diff
+          if pnpm run setup -- --name "CI Check" --slug ci-check --no-example; then
+            echo "the setup script is still runnable"; exit 1
+          fi
+          git status --porcelain > /tmp/after.status
+          git diff | sha256sum > /tmp/after.diff
+          diff /tmp/before.status /tmp/after.status
+          diff /tmp/before.diff /tmp/after.diff
+
+      - name: Biome
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm exec biome ci .
+
+      - name: Migrate
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm db:migrate
+
+      - name: Check
+        if: steps.gate.outputs.run == 'true'
+        run: pnpm check

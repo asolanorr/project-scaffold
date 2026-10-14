@@ -1,3 +1,7 @@
+// @hugeicons/core-free-icons is pinned to an exact version in package.json, on
+// purpose: 4.3.4 shipped six mis-cased esm exports (Grid2x2*/Grid3x* pointing at
+// Grid2X2*/Grid3X* files), which resolve on Windows and macOS and fail to import
+// on Linux CI. Fixed in 4.3.5. A range could land on another broken release.
 import {
   Add01Icon,
   AlertCircleIcon,

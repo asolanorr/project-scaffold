@@ -28,6 +28,8 @@ const SCAFFOLD_SLUG = "scaffold";
 class SetupError extends Error {}
 
 let wroteFiles = false;
+/** Untracked files this run created: the only things `git restore` cannot undo. */
+const createdFiles = [];
 
 const fail = (message) => {
   throw new SetupError(message);
@@ -450,17 +452,24 @@ function writeTree(tree) {
 }
 
 function generateDropMigration() {
-  const before = new Set(readdirSync(join(ROOT, "packages/db/migrations")));
+  const listing = () => [
+    ...readdirSync(join(ROOT, "packages/db/migrations")).map((f) => `packages/db/migrations/${f}`),
+    ...readdirSync(join(ROOT, "packages/db/migrations/meta")).map(
+      (f) => `packages/db/migrations/meta/${f}`,
+    ),
+  ];
+  const before = new Set(listing());
   // One command string, not a shell plus an args array: pnpm is a .cmd shim on
   // Windows, and Node deprecates passing args to a shell.
   const result = spawnSync(
     "pnpm --filter @repo/db exec drizzle-kit generate --name drop_projects",
     { cwd: ROOT, stdio: "inherit", shell: true },
   );
+  // Recorded before anything can fail, so the recovery message names them all.
+  const added = listing().filter((f) => !before.has(f));
+  createdFiles.push(...added);
   if (result.status !== 0) fail("drizzle-kit generate failed; see its output above.");
-  const created = readdirSync(join(ROOT, "packages/db/migrations")).filter(
-    (f) => f.endsWith(".sql") && !before.has(f),
-  );
+  const created = added.filter((f) => f.endsWith(".sql")).map((f) => f.split("/").pop());
   if (created.length !== 1) fail(`Expected exactly one new migration, found ${created.length}.`);
   const file = `packages/db/migrations/${created[0]}`;
   const sql = readFileSync(join(ROOT, file), "utf8");
@@ -556,6 +565,7 @@ async function main() {
   writeTree(tree);
   wroteFiles = true;
   writeFileSync(join(ROOT, ".env"), envText, { flag: "wx" });
+  createdFiles.push(".env");
 
   const migration = keepExample ? null : generateDropMigration();
 
@@ -601,8 +611,13 @@ main().catch((error) => {
   if (error instanceof SetupError) {
     console.error(`\nproject:init: ${error.message}`);
     if (wroteFiles) {
+      // Only the files this run created need removing; `git restore .` brings
+      // back everything it modified or deleted. Never a blanket `git clean`.
+      const remove = createdFiles.length
+        ? `\n  rm ${createdFiles.map((f) => `"${f}"`).join(" ")}`
+        : "";
       console.error(
-        "\nFiles were already written. To start over (history is untouched):\n  git restore . && git clean -fd && rm .env",
+        `\nFiles were already written. To start over (history is untouched):\n  git restore .${remove}`,
       );
     }
   } else {

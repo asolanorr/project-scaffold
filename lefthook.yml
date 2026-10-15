@@ -10,3 +10,13 @@ commit-msg:
   jobs:
     - name: commitlint
       run: pnpm exec commitlint --edit {1}
+
+# Typecheck and lint before anything leaves the machine. Turbo caches both, so a
+# push right after `pnpm check` costs next to nothing.
+pre-push:
+  parallel: true
+  jobs:
+    - name: typecheck
+      run: pnpm turbo run typecheck
+    - name: lint
+      run: pnpm turbo run lint

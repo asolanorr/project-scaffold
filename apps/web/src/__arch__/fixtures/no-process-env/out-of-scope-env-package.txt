@@ -1,0 +1,3 @@
+// path: packages/env/src/index.ts
+// expect: none
+export const secret = process.env.SECRET;

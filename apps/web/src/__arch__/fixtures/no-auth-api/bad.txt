@@ -1,0 +1,3 @@
+// path: apps/web/src/lib/x.ts
+// expect: no-auth-api
+export const a = () => auth.api.signUpEmail({ body: {} });

@@ -1,0 +1,4 @@
+// path: apps/web/src/features/a/components/x.tsx
+// expect: no-manual-formatting
+export const a = (d: Date) => d.toLocaleDateString("es");
+export const b = (n: number) => new Intl.NumberFormat("en").format(n);

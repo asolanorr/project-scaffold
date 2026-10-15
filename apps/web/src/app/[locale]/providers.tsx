@@ -3,6 +3,7 @@
 import { Toaster } from "@repo/ui/composed/toaster";
 import { RouterProvider } from "@repo/ui/router";
 import type { Route } from "next";
+// arch-allow(web-localized-navigation): next-intl's useRouter reads usePathname(), which is request data; above every Suspense boundary it would stop routes prerendering (see the comment below)
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import type { ReactNode } from "react";

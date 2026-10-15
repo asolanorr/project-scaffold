@@ -290,6 +290,12 @@ function removeExample(tree) {
 
   tree.replace("packages/db/src/schema/index.ts", 'export * from "./projects";\n', "");
 
+  // The escape ledger lists the example's exceptions by file; those files are gone.
+  tree.json("apps/web/src/__arch__/escapes.json", (ledger) => {
+    const kept = ledger.filter((entry) => !tree.deleted.has(entry.file));
+    ledger.splice(0, ledger.length, ...kept);
+  });
+
   const routes = "apps/web/src/lib/routes.ts";
   tree.replace(
     routes,

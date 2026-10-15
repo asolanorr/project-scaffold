@@ -46,6 +46,24 @@
       // hit must not replay a pass from a run that pointed somewhere else.
       "env": ["DATABASE_URL", "DIRECT_URL", "TEST_DATABASE_URL"]
     },
+    // The architecture tests read the whole repository (every package, the docs,
+    // .env.example, biome.json and the plugins), so a cached pass must be
+    // invalidated by a change anywhere in them, not only in apps/web.
+    "@repo/web#test": {
+      "dependsOn": ["^build"],
+      "env": ["DATABASE_URL", "DIRECT_URL", "TEST_DATABASE_URL"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/biome.json",
+        "$TURBO_ROOT$/biome-plugins/**",
+        "$TURBO_ROOT$/ARCHITECTURE.md",
+        "$TURBO_ROOT$/.env.example",
+        "$TURBO_ROOT$/apps/**/*.{ts,tsx,json}",
+        "$TURBO_ROOT$/packages/**/*.{ts,tsx,json,sql}",
+        "!$TURBO_ROOT$/**/node_modules/**",
+        "!$TURBO_ROOT$/**/.next/**"
+      ]
+    },
     "db:generate": {
       "cache": false,
       "interactive": true

@@ -1,0 +1,6 @@
+// path: apps/web/src/features/a/actions.ts
+// expect: none
+import { updateTag } from "next/cache";
+export function a(id: string) {
+  updateTag(cacheTags.files(id));
+}

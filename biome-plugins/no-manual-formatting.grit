@@ -1,0 +1,12 @@
+language js
+
+// i18n rule: dates, numbers and currency go through useFormatter, never by hand.
+or {
+  `$d.toLocaleString($args)`,
+  `$d.toLocaleDateString($args)`,
+  `$d.toLocaleTimeString($args)`,
+  `new Intl.NumberFormat($args)`,
+  `new Intl.DateTimeFormat($args)`
+} as $call where {
+  register_diagnostic(span=$call, message="arch/no-manual-formatting: format dates, numbers and currency with useFormatter / getFormatter from next-intl so the locale is applied.", severity="error")
+}

@@ -6,6 +6,7 @@ import { env } from "@repo/env";
 import { payments } from "@repo/payments";
 import { and, eq } from "drizzle-orm";
 import type { Route } from "next";
+// arch-allow(web-localized-navigation): redirects to Stripe's hosted page, an external URL that next-intl's redirect would prefix with a locale
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
@@ -36,7 +37,12 @@ export async function createCheckoutOrder(
   //    function ever reads an amount or currency off the request: not the
   //    form, not a hidden field, not a query string.
   const [price] = await db
-    .select()
+    .select({
+      id: prices.id,
+      name: prices.name,
+      amountMinor: prices.amountMinor,
+      currency: prices.currency,
+    })
     .from(prices)
     .where(and(eq(prices.id, parsed.data.priceId), eq(prices.active, true)))
     .limit(1);
@@ -50,7 +56,7 @@ export async function createCheckoutOrder(
       amountMinor: price.amountMinor,
       currency: price.currency,
     })
-    .returning();
+    .returning({ id: orders.id, amountMinor: orders.amountMinor, currency: orders.currency });
   if (!order) throw new Error("insert returned no row");
 
   const locale = await getLocale();

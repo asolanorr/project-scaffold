@@ -1,0 +1,5 @@
+// path: packages/auth/src/x.ts
+// expect: none
+export function a() {
+  deferred(() => sendEmail({ to: "a@b.c" }));
+}

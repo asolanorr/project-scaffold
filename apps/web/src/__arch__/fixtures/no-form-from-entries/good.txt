@@ -1,0 +1,4 @@
+// path: apps/web/src/features/a/actions.ts
+// expect: none
+export const a = (formData: FormData) => parseFormData(formData);
+export const b = () => Object.fromEntries(new Map());

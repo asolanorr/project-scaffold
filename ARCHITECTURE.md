@@ -130,20 +130,26 @@ scaffold/
 during project setup (`pnpm run project:init`), read it from the scaffold repo
 with `git show upstream/main:<path>`.
 
-### Dependency rules (enforced by lint)
+### Dependency rules (enforced by the architecture test)
 
 ```
 apps/web          →  packages/db, auth, ui, storage, payments, env, config
+apps/docs         →  packages/config
 packages/auth     →  packages/db, email, env, config
 packages/email    →  packages/env, config
 packages/storage  →  packages/env, config
 packages/payments →  packages/env, config
 packages/db       →  packages/env, config
 packages/ui       →  packages/config
-packages/env      →  (nothing internal)
+packages/env      →  packages/config
+packages/config   →  (nothing internal)
 ```
 
-No package may import from `apps/`. No circular dependencies. `packages/ui`
+No package may import from `apps/`. No circular dependencies. This table is read
+by `apps/web/src/__arch__/architecture.test.ts`, which fails when a
+`package.json` or an `@repo/*` import steps outside it, when a package imports
+from `apps/`, or when the declared graph has a cycle: change the table and the
+code in the same commit. `packages/ui`
 holds no business logic, so a second web app — an admin panel, a client
 portal — can consume it unchanged. It is React Aria and Tailwind, so it is not
 reusable in React Native; a mobile app would share `packages/db` and the

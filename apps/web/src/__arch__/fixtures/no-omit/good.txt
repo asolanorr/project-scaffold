@@ -1,0 +1,3 @@
+// path: apps/web/src/features/a/schema.ts
+// expect: none
+export const insertThing = createInsertSchema(things).pick({ name: true });

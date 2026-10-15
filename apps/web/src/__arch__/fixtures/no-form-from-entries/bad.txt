@@ -1,0 +1,3 @@
+// path: apps/web/src/features/a/actions.ts
+// expect: no-form-from-entries
+export const a = (formData: FormData) => Object.fromEntries(formData);

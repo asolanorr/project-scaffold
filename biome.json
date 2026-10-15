@@ -8,7 +8,7 @@
   },
   "files": {
     "ignoreUnknown": false,
-    "includes": ["**", "!**/migrations/meta"]
+    "includes": ["**", "!**/migrations/meta", "!**/__arch__/fixtures"]
   },
   "overrides": [
     {
@@ -20,6 +20,42 @@
           }
         }
       }
+    },
+    {
+      "includes": ["apps/web/src/features/**", "!**/__tests__/**", "!**/*.test.*"],
+      "plugins": ["./biome-plugins/no-unscoped-select.grit"]
+    },
+    {
+      "includes": [
+        "apps/web/src/**",
+        "packages/*/src/**",
+        "!packages/env/**",
+        "!packages/db/**",
+        "!**/__tests__/**",
+        "!**/*.test.*"
+      ],
+      "plugins": ["./biome-plugins/no-process-env.grit"]
+    },
+    {
+      "includes": ["apps/web/src/**", "!**/__tests__/**", "!**/*.test.*"],
+      "plugins": ["./biome-plugins/no-auth-api.grit"]
+    },
+    {
+      "includes": ["apps/web/src/**", "packages/auth/src/**", "!**/__tests__/**", "!**/*.test.*"],
+      "plugins": ["./biome-plugins/no-await-send-email.grit"]
+    },
+    {
+      "includes": ["apps/web/src/**", "!**/__tests__/**", "!**/*.test.*"],
+      "plugins": ["./biome-plugins/no-form-from-entries.grit"]
+    },
+    {
+      "includes": ["apps/web/src/**", "!**/__tests__/**", "!**/*.test.*"],
+      "plugins": ["./biome-plugins/no-manual-formatting.grit"]
+    },
+    {
+      "includes": ["apps/web/src/app/**"],
+      "plugins": ["./biome-plugins/no-instant-false.grit"]
     }
-  ]
+  ],
+  "plugins": ["./biome-plugins/no-omit.grit", "./biome-plugins/no-revalidate-path.grit"]
 }

@@ -382,6 +382,87 @@ Common mistakes that look reasonable but violate the architecture:
 
 ---
 
+## What is enforced mechanically
+
+`pnpm check` runs two kinds of guardrail besides typecheck, `next build` and the
+feature tests. A rule listed here fails the build; a rule listed under
+"Review only" is on you and on the reviewer.
+
+- **Biome** (`biome-plugins/*.grit`, wired in `biome.json`; diagnostics read
+  `arch/<id>`). Escape hatch: `// biome-ignore lint/plugin: <reason>`.
+- **The architecture test** (`apps/web/src/__arch__/architecture.test.ts`, rules in
+  `rules.ts`). Escape hatch: `// arch-allow(<rule-id>): <reason>` on or above the
+  line. A reason is required, and the test fails without one.
+- Both have self-tests that prove each rule still fires on a deliberate
+  violation. If you add a rule, add its fixture or snippet in the same change.
+- **Every escape is on a ledger.** The architecture test collects each
+  `arch-allow(...)` and `biome-ignore lint/plugin` in the repository and compares
+  them with `apps/web/src/__arch__/escapes.json` (file, rule, reason, count).
+  Adding or removing an escape without updating that file fails the test.
+  **Changing `escapes.json` is a change a human must review**: an agent may
+  propose an escape and say why, but must not treat a green build as approval.
+  (`UPDATE_ESCAPES=1 pnpm --filter @repo/web exec vitest run src/__arch__`
+  rewrites the file; read the diff before committing it.) A ledger entry whose
+  file no longer exists is ignored, which is how `project:init` can delete the
+  example feature with its escapes.
+- A guardrails gate in CI fails a pull request that changes this file, the rule
+  tests, the Biome config or plugins, `.claude/`, the lefthook config or the
+  workflows unless it carries the `guardrails-change` label.
+
+| Rule | Caught by |
+| --- | --- |
+| 2 — no `.omit()` on schemas; `.pick()` allowlists | Biome `no-omit` |
+| 3 — a server action starts with `requireSession()` / `requireAdmin()`; `actions.ts` starts with `"use server"` and exports only async functions and types | arch `actions-contract` (a public action needs `arch-allow(public-action)`) |
+| 3 — `requireSession()` never inside `try` | arch `no-session-in-try` |
+| 5 — no `.returning()` or `.select()` without a column list in feature code | Biome `no-unscoped-select` |
+| 6 — nothing request-scoped inside `"use cache"` | arch `use-cache-purity` |
+| 6 — request data read outside `<Suspense>` | `next build` |
+| 6 — `instant = false` | Biome `no-instant-false` |
+| 9 — no mutating route handlers outside `api/auth`, `api/*/webhook`, `api/jobs` | arch `route-handler-writes` |
+| 10 — Postgres only through `@repo/db`; `@supabase/supabase-js` only in `packages/storage` | arch `postgres-driver-only-in-db`, `supabase-js-only-in-storage` |
+| 10 — no raw SQL in feature code | arch `no-raw-sql-in-features` |
+| 12 — invalidate by tag: no `revalidatePath`; `updateTag` / `revalidateTag` / `cacheTag` take `cacheTags.*()` | Biome `no-revalidate-path`, arch `cache-tags-only` |
+| 14 — no `process.env` outside `@repo/env` | Biome `no-process-env` |
+| 14 — a variable is in the `@repo/env` schema and `.env.example` together | arch `env-parity` |
+| 14 — edge code and everything `middleware.ts` imports avoids `@repo/env`, `@repo/db`, `@repo/auth` | arch `edge-env` |
+| 15 — `better-auth` only inside `packages/auth` | arch `better-auth-only-in-auth` |
+| 16 — no `auth.api.*` in the app | Biome `no-auth-api` |
+| 17 — no internal path literal in links, redirects or router calls | arch `no-path-literals` (and typed routes for `routes.ts` itself) |
+| Queries files start with `import "server-only"` | arch `queries-server-only` |
+| `features/a` never imports `features/b` | arch `no-cross-feature-imports` |
+| `"use client"` files never import the `@repo/db` barrel | arch `client-no-db-barrel` |
+| Package graph, no cycles, no `packages/*` → `apps/*`, no relative import out of a package | arch `package-graph`, `packages-never-import-apps`, `no-relative-escape` |
+| `packages/ui` imports no `next-intl`, `next/navigation`, `next/link` | arch `ui-framework-free` |
+| One primitive layer; icons and mail through their one file | arch `no-other-ui-kits`, `hugeicons-only-in-icons`, `resend-only-in-transport` |
+| Navigation helpers come from `@/i18n/navigation` | arch `web-localized-navigation` |
+| `sendEmail()` is never awaited in a request | Biome `no-await-send-email` |
+| Dates and numbers through `useFormatter` | Biome `no-manual-formatting` |
+| No `Object.fromEntries(formData)` | Biome `no-form-from-entries` |
+| `en.json` and `es.json` have the same keys | arch `messages-parity` (and message-key types) |
+| `@ts-expect-error` carries a reason; no `@ts-ignore` | arch `ts-expect-error-reason` |
+| No `'strict-dynamic'` in the CSP | arch `csp-no-strict-dynamic` |
+| A test that uses the `db` client calls `setupTestTransaction()` | arch `db-tests-use-transaction` |
+| Applied migrations are never edited or deleted | arch `migrations-immutable` (needs `origin/main` to compare against) |
+| `audit_log` has one writer | `audit-log-append-only.test.ts` |
+| Conventional Commits | commitlint, locally |
+
+**Review only** (no tool catches these; do not assume green means compliant):
+
+- Rule 1: routes are thin. Rule 2: no hand-written interface mirroring a table.
+- Rule 3: validation comes before the ownership check.
+- **Rule 4: authorization in the `WHERE`, 404 not 403.** The only safety net is a
+  cross-user test per feature; `/new-feature` requires one.
+- Rule 5: whole rows via `db.query.*.findMany()` or a hand-built `select` that
+  lists every column.
+- Rule 7: server components by default. Rule 8: no fetching in `useEffect`.
+- Rule 11: expected failures are returned, not thrown. Rule 13: reads exclude
+  soft-deleted rows.
+- Hardcoded strings in JSX, translated strings returned from actions, and
+  design tokens versus raw values.
+- Naming, one component per file, default exports, comments that explain why.
+
+---
+
 ## Before you finish
 
 - [ ] `pnpm check` passes

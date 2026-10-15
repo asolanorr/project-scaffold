@@ -266,7 +266,7 @@ const SELF_TESTS: Record<string, SelfTest> = {
       ],
       [
         f(
-          "apps/web/src/app/api/projects/route.ts",
+          "apps/web/src/app/api/things/route.ts",
           "export const DELETE = async () => new Response();",
         ),
       ],
@@ -295,7 +295,7 @@ const SELF_TESTS: Record<string, SelfTest> = {
   "no-path-literals": {
     bad: [
       [f("apps/web/src/features/a/x.ts", 'redirect("/dashboard");')],
-      [f("apps/web/src/features/a/x.tsx", 'const a = <Link href="/projects">x</Link>;')],
+      [f("apps/web/src/features/a/x.tsx", 'const a = <Link href="/settings">x</Link>;')],
       [f("apps/web/src/features/a/x.tsx", "const a = <a href={`/p/$" + "{id}`}>x</a>;")],
       [f("apps/web/src/features/a/x.ts", "router.push(`/p/$" + "{id}`);")],
       [f("apps/web/src/features/a/x.ts", 'const p = localizedPath(locale, "/sign-in");')],
@@ -304,7 +304,7 @@ const SELF_TESTS: Record<string, SelfTest> = {
       [
         f(
           "apps/web/src/features/a/x.ts",
-          "redirect(DASHBOARD_PATH);\nrouter.push(projectPath(id));",
+          "redirect(DASHBOARD_PATH);\nrouter.push(settingsPath(id));",
         ),
       ],
       [
@@ -392,7 +392,7 @@ const SELF_TESTS: Record<string, SelfTest> = {
   },
   "client-no-db-barrel": {
     bad: [
-      [f("apps/web/src/features/a/c.tsx", '"use client";\nimport { projects } from "@repo/db";')],
+      [f("apps/web/src/features/a/c.tsx", '"use client";\nimport { things } from "@repo/db";')],
     ],
     good: [
       [

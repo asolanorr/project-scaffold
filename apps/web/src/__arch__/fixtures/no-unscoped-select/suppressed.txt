@@ -1,0 +1,4 @@
+// path: apps/web/src/features/a/queries.ts
+// expect: none
+// biome-ignore lint/plugin: fixture, the whole row is the point of this query
+export const a = () => db.select().from(t);

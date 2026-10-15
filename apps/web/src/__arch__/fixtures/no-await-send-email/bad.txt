@@ -1,0 +1,5 @@
+// path: packages/auth/src/x.ts
+// expect: no-await-send-email
+export async function a() {
+  await sendEmail({ to: "a@b.c" });
+}

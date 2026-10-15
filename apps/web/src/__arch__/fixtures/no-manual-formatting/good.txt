@@ -1,0 +1,3 @@
+// path: apps/web/src/features/a/components/x.tsx
+// expect: none
+export const a = (format: Formatter, d: Date) => format.dateTime(d);

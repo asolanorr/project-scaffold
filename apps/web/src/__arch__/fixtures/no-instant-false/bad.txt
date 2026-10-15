@@ -1,0 +1,3 @@
+// path: apps/web/src/app/[locale]/x/page.tsx
+// expect: no-instant-false
+export const instant = false;

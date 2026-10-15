@@ -1,6 +1,7 @@
 "use client";
 
 import { toast } from "@repo/ui/composed/toaster";
+// arch-allow(web-localized-navigation): only calls router.refresh(); next-intl's useRouter reads usePathname(), request data that must not be read above Suspense
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { createContext, type ReactNode, useContext, useMemo } from "react";

@@ -1,0 +1,3 @@
+// path: apps/web/src/lib/x.ts
+// expect: none
+export const a = () => callAuthEndpoint("/sign-up/email", {});

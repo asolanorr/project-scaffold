@@ -1,0 +1,4 @@
+// path: apps/web/src/lib/x.ts
+// expect: none
+import { env } from "@repo/env";
+export const secret = env.BETTER_AUTH_SECRET;

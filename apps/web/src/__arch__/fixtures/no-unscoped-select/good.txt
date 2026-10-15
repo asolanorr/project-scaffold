@@ -1,0 +1,4 @@
+// path: apps/web/src/features/a/queries.ts
+// expect: none
+export const a = () => db.select({ id: t.id }).from(t);
+export const b = () => db.insert(t).values({}).returning({ id: t.id });

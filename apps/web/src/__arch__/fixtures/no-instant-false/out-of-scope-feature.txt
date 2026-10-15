@@ -1,0 +1,3 @@
+// path: apps/web/src/features/a/x.ts
+// expect: none
+export const instant = false;

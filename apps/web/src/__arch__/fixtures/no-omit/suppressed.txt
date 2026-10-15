@@ -1,0 +1,4 @@
+// path: apps/web/src/features/a/schema.ts
+// expect: none
+// biome-ignore lint/plugin: fixture proving the escape hatch works
+export const insertThing = createInsertSchema(things).omit({ id: true });

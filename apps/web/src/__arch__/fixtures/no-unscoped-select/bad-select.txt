@@ -1,0 +1,3 @@
+// path: apps/web/src/features/a/queries.ts
+// expect: no-unscoped-select
+export const a = () => db.select().from(t);

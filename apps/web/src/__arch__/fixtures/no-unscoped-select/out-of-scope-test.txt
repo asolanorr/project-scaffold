@@ -1,0 +1,3 @@
+// path: apps/web/src/features/a/__tests__/x.test.ts
+// expect: none
+export const a = () => db.select().from(t);

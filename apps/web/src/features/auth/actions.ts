@@ -25,6 +25,7 @@ import {
 
 type AuthActionState = ActionState<undefined, AuthErrorCode>;
 
+// arch-allow(public-action): runs before any session exists; the auth endpoint itself rate-limits and checks the origin
 export async function signInAction(
   _previous: AuthActionState,
   formData: FormData,
@@ -59,6 +60,7 @@ export async function signInAction(
   });
 }
 
+// arch-allow(public-action): runs before any session exists; the auth endpoint itself rate-limits and checks the origin
 export async function signUpAction(
   _previous: AuthActionState,
   formData: FormData,
@@ -101,6 +103,7 @@ export async function signUpAction(
  * Send the verification link again. The endpoint has its own rate limit; a
  * 429 is the one failure worth distinguishing.
  */
+// arch-allow(public-action): runs before any session exists; the auth endpoint itself rate-limits and checks the origin
 export async function resendVerificationAction(
   _previous: AuthActionState,
   formData: FormData,
@@ -125,6 +128,7 @@ export async function resendVerificationAction(
  * Better Auth answers the same either way, and so does this, because the
  * difference is a list of who has signed up.
  */
+// arch-allow(public-action): runs before any session exists; the auth endpoint itself rate-limits and checks the origin
 export async function forgotPasswordAction(
   _previous: AuthActionState,
   formData: FormData,
@@ -144,6 +148,7 @@ export async function forgotPasswordAction(
   return { ok: true, data: undefined };
 }
 
+// arch-allow(public-action): runs before any session exists; the auth endpoint itself rate-limits and checks the origin
 export async function resetPasswordAction(
   _previous: AuthActionState,
   formData: FormData,
@@ -164,6 +169,7 @@ export async function resetPasswordAction(
   return { ok: true, data: undefined };
 }
 
+// arch-allow(public-action): runs before any session exists; the auth endpoint itself rate-limits and checks the origin
 export async function signOutAction(): Promise<void> {
   await callAuthEndpoint("/sign-out", {});
   const locale = await getLocale();

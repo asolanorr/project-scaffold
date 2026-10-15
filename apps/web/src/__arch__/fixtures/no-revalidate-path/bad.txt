@@ -1,0 +1,6 @@
+// path: apps/web/src/features/a/actions.ts
+// expect: no-revalidate-path
+import { revalidatePath } from "next/cache";
+export function a() {
+  revalidatePath("/projects");
+}

@@ -1,0 +1,3 @@
+// path: apps/web/src/features/a/actions.ts
+// expect: no-unscoped-select
+export const a = () => db.insert(t).values({}).returning();

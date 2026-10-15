@@ -1,0 +1,3 @@
+// path: apps/web/next.config.ts
+// expect: none
+export const secret = process.env.SECRET;

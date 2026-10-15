@@ -1,0 +1,5 @@
+// path: packages/email/src/x.ts
+// expect: none
+export async function a() {
+  await sendEmail({ to: "a@b.c" });
+}

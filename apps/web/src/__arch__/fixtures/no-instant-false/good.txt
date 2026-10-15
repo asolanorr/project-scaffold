@@ -1,0 +1,3 @@
+// path: apps/web/src/app/[locale]/x/page.tsx
+// expect: none
+export const dynamic = "auto";

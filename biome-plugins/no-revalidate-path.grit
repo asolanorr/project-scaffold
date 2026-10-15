@@ -1,0 +1,6 @@
+language js
+
+// AGENTS.md rule 12: invalidate by tag with updateTag(cacheTags.x(...)), never by path.
+`revalidatePath` as $name where {
+  register_diagnostic(span=$name, message="arch/no-revalidate-path: invalidate by tag (updateTag with a cacheTags.* name), never by path. A literal path silently matches nothing once locales and route groups are in the URL.", severity="error")
+}

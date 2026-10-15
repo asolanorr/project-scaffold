@@ -1,0 +1,6 @@
+language js
+
+// Email rule: sendEmail() is never awaited in a request; wrap it in deferred().
+`await sendEmail($args)` as $call where {
+  register_diagnostic(span=$call, message="arch/no-await-send-email: do not await sendEmail in a request. Wrap it in deferred() so delivery latency is not the user's.", severity="error")
+}

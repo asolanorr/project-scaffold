@@ -1,0 +1,6 @@
+language js
+
+// AGENTS.md rule 14: every variable comes from @repo/env, which validates at boot.
+`process.env` as $env where {
+  register_diagnostic(span=$env, message="arch/no-process-env: read configuration from @repo/env (or @repo/env/edge in middleware), never process.env. Add the variable to the schema and .env.example.", severity="error")
+}

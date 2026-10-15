@@ -1,0 +1,7 @@
+language js
+
+// AGENTS.md rule 6: `instant = false` exists for a page that genuinely cannot be
+// split, not for silencing the Suspense build error.
+`export const instant = false` as $decl where {
+  register_diagnostic(span=$decl, message="arch/no-instant-false: put the request-dependent part behind <Suspense> instead. If the page truly cannot be split, add `// biome-ignore lint/plugin: <reason>`.", severity="error")
+}

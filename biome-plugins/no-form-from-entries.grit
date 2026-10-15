@@ -1,0 +1,8 @@
+language js
+
+// AGENTS.md "what not to do": Object.fromEntries(formData) loses multi-value
+// fields and skips type coercion. Use parseFormData.
+`Object.fromEntries($data)` as $call where {
+  $data <: r"(?i).*form.*",
+  register_diagnostic(span=$call, message="arch/no-form-from-entries: use parseFormData(formData), never Object.fromEntries(formData).", severity="error")
+}

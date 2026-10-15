@@ -56,7 +56,7 @@ export async function transitionOrder(params: {
       // be ruled out first, or the insert below fails on that constraint
       // instead of reporting the order as missing.
       const [current] = await tx
-        .select()
+        .select(orderColumns)
         .from(orders)
         .where(eq(orders.id, params.orderId))
         .limit(1);
@@ -73,7 +73,7 @@ export async function transitionOrder(params: {
         target = nextOrderStatus(current.status, params.targetStatus);
       } catch (error) {
         if (error instanceof IllegalOrderTransition) {
-          return { status: "ignored", order: toView(current) } as const;
+          return { status: "ignored", order: current } as const;
         }
         throw error;
       }
@@ -92,15 +92,4 @@ export async function transitionOrder(params: {
     if (error instanceof OrderNotFound) return { status: "orderNotFound" };
     throw error;
   }
-}
-
-function toView(order: typeof orders.$inferSelect): OrderView {
-  return {
-    id: order.id,
-    priceId: order.priceId,
-    amountMinor: order.amountMinor,
-    currency: order.currency,
-    status: order.status,
-    createdAt: order.createdAt,
-  };
 }

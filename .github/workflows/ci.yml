@@ -246,3 +246,46 @@ jobs:
       - name: Check
         if: steps.gate.outputs.run == 'true'
         run: pnpm check
+
+  # The files that define and enforce the rules are not changed in passing. A pull
+  # request touching them needs the `guardrails-change` label, which only someone
+  # with triage rights can add: it is the signal that a human looked. The label is
+  # read through the API when the job runs, so adding it and re-running this job is
+  # enough (a re-run keeps the original event payload, which would hold stale labels).
+  # Skipped, not failed, on a push to main.
+  guardrails-gate:
+    name: Guardrails gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: github.event_name == 'pull_request'
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Changed guardrail files need the guardrails-change label
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE_REF: ${{ github.base_ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          git fetch --quiet origin "$BASE_REF"
+          protected='^(AGENTS\.md|CLAUDE\.md|ARCHITECTURE\.md|biome\.json|lefthook\.yml|biome-plugins/|apps/web/src/__arch__/|\.claude/|\.github/workflows/)|/(AGENTS|CLAUDE)\.md$'
+          touched=$(git diff --name-only "origin/$BASE_REF...HEAD" | grep -E "$protected" || true)
+          if [ -z "$touched" ]; then
+            echo "No guardrail files changed."
+            exit 0
+          fi
+          echo "This pull request changes guardrail files:"
+          echo "$touched" | sed 's/^/  /'
+          labels=$(gh pr view "$PR_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '.labels[].name')
+          if echo "$labels" | grep -qx 'guardrails-change'; then
+            echo "Label guardrails-change is present."
+            exit 0
+          fi
+          echo "::error::Add the guardrails-change label (a human must review these files), then re-run this job."
+          exit 1

@@ -1221,3 +1221,84 @@ export const RULES: Rule[] = [
   messageParity,
   archAllowReason,
 ];
+
+// ------------------------------------------------------------- escape ledger
+
+/**
+ * Every deliberate exception to a rule: `arch-allow(<rule>): <reason>` and
+ * `biome-ignore lint/plugin: <reason>`. They are committed in escapes.json so
+ * adding or removing one is a visible, reviewable change instead of a comment
+ * nobody notices.
+ */
+export interface Escape {
+  file: string;
+  rule: string;
+  reason: string;
+  count: number;
+}
+
+const ARCH_ALLOW = /^\s*\/\/\s*arch-allow\(([\w-]+)\):\s*(.+?)\s*$/;
+const BIOME_IGNORE =
+  /^\s*(?:\/\/|\/\*)\s*biome-ignore(?:-all)?\s+lint\/plugin(?:\/[\w-]+)?\s*:\s*(.+?)\s*(?:\*\/)?$/;
+
+export function collectEscapes(files: SourceFile[]): Escape[] {
+  const byKey = new Map<string, Escape>();
+  for (const file of files) {
+    if (!isScript(file.path)) continue;
+    for (const line of file.text.split("\n")) {
+      const arch = ARCH_ALLOW.exec(line);
+      const biome = arch ? null : BIOME_IGNORE.exec(line);
+      const found = arch
+        ? { rule: arch[1] as string, reason: arch[2] as string }
+        : biome
+          ? { rule: "biome-ignore lint/plugin", reason: biome[1] as string }
+          : null;
+      if (!found) continue;
+      const key = `${file.path}\u0000${found.rule}\u0000${found.reason}`;
+      const existing = byKey.get(key);
+      if (existing) existing.count += 1;
+      else byKey.set(key, { file: file.path, ...found, count: 1 });
+    }
+  }
+  return [...byKey.values()].sort((a, b) =>
+    `${a.file}|${a.rule}|${a.reason}`.localeCompare(`${b.file}|${b.rule}|${b.reason}`),
+  );
+}
+
+/**
+ * Compare the escapes found in the code with the committed ledger. An entry whose
+ * file no longer exists is ignored: `project:init` deletes the example feature
+ * wholesale, and its escapes go with it.
+ */
+export function diffEscapes(
+  found: Escape[],
+  committed: Escape[],
+  fileExists: (path: string) => boolean,
+): Violation[] {
+  const key = (e: Escape) => `${e.file}\u0000${e.rule}\u0000${e.reason}`;
+  const have = new Map(found.map((e) => [key(e), e]));
+  const out: Violation[] = [];
+  for (const e of found) {
+    const recorded = committed.find((c) => key(c) === key(e))?.count ?? 0;
+    if (e.count > recorded) {
+      out.push({
+        rule: "escape-ledger",
+        file: e.file,
+        line: 1,
+        message: `New escape (${e.rule}: "${e.reason}") is not in apps/web/src/__arch__/escapes.json. A human must review it: add it to the ledger in the same change.`,
+      });
+    }
+  }
+  for (const c of committed) {
+    if (!fileExists(c.file)) continue;
+    if ((have.get(key(c))?.count ?? 0) < c.count) {
+      out.push({
+        rule: "escape-ledger",
+        file: c.file,
+        line: 1,
+        message: `The escape (${c.rule}: "${c.reason}") was removed or changed but escapes.json still lists it. Update the ledger in the same change.`,
+      });
+    }
+  }
+  return out;
+}

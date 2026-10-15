@@ -1,9 +1,18 @@
 import { execFileSync } from "node:child_process";
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import { migrationChanges, RESTRICTIONS, RULES, type SourceFile, type Violation } from "./rules";
+import {
+  collectEscapes,
+  diffEscapes,
+  type Escape,
+  migrationChanges,
+  RESTRICTIONS,
+  RULES,
+  type SourceFile,
+  type Violation,
+} from "./rules";
 
 /**
  * The architecture test. Two halves, deliberately in one file:
@@ -49,6 +58,8 @@ function collect(dir: string, out: SourceFile[] = []): SourceFile[] {
   return out;
 }
 
+const LEDGER = join(dirname(fileURLToPath(import.meta.url)), "escapes.json");
+
 const f = (path: string, text: string): SourceFile => ({ path, text });
 
 function report(violations: Violation[]): string {
@@ -70,6 +81,22 @@ describe("architecture rules hold across the repository", () => {
       expect(report(rule.check(files))).toBe("");
     });
   }
+
+  it("escape-ledger: every arch-allow and biome-ignore lint/plugin is listed in escapes.json", () => {
+    const found = collectEscapes(files);
+    // Regenerates the ledger. The result is still a change a human must review.
+    if (process.env.UPDATE_ESCAPES === "1") {
+      writeFileSync(
+        LEDGER,
+        `${JSON.stringify(found, null, 2)}
+`,
+      );
+    }
+    const committed = JSON.parse(readFileSync(LEDGER, "utf8")) as Escape[];
+    expect(report(diffEscapes(found, committed, (path) => existsSync(join(REPO_ROOT, path))))).toBe(
+      "",
+    );
+  });
 
   it("migrations-immutable: no applied migration is edited or deleted", () => {
     const changes = migrationChangesAgainstBase();
@@ -655,6 +682,61 @@ describe("every rule fires on a deliberate violation (and not on the clean versi
   it("new restricted-import self-tests are not orphaned", () => {
     const ids = new Set(RESTRICTIONS.map((r) => r.id));
     for (const id of Object.keys(RESTRICTED_SELF_TESTS)) expect(ids.has(id)).toBe(true);
+  });
+
+  describe("escape-ledger", () => {
+    const exists = () => true;
+    const listed: Escape = {
+      file: "a.ts",
+      rule: "public-action",
+      reason: "runs before any session exists",
+      count: 1,
+    };
+    const action = "// arch-allow(public-action): runs before any session exists";
+    const src = (text: string) => [f("a.ts", text)];
+
+    it("collects arch-allow and biome-ignore lint/plugin, and nothing else", () => {
+      const found = collectEscapes(
+        src(
+          [
+            action,
+            "// biome-ignore lint/plugin: the whole row is the point",
+            "// biome-ignore lint/style/noNonNullAssertion: not ours",
+            "const a = 'arch-allow(x): in a string';",
+          ].join("\n"),
+        ),
+      );
+      expect(found.map((e) => e.rule)).toEqual(["biome-ignore lint/plugin", "public-action"]);
+    });
+
+    it("passes when the code and the ledger agree", () => {
+      expect(diffEscapes(collectEscapes(src(action)), [listed], exists)).toEqual([]);
+    });
+
+    it("flags an escape added without updating the ledger", () => {
+      const added = "// arch-allow(no-path-literals): an external URL, not a route";
+      const found = collectEscapes(
+        src(`${action}
+${added}`),
+      );
+      expect(diffEscapes(found, [listed], exists)).toHaveLength(1);
+    });
+
+    it("flags another use of an already-listed escape", () => {
+      const found = collectEscapes(
+        src(`${action}
+${action}`),
+      );
+      expect(diffEscapes(found, [listed], exists)).toHaveLength(1);
+    });
+
+    it("flags an escape removed without updating the ledger", () => {
+      expect(diffEscapes(collectEscapes(src("const a = 1;")), [listed], exists)).toHaveLength(1);
+    });
+
+    it("ignores a ledger entry whose file was deleted wholesale", () => {
+      expect(diffEscapes([], [listed], () => false)).toEqual([]);
+    });
   });
 
   it("migrations-immutable flags an edit and a delete, and allows additions", () => {

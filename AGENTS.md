@@ -395,6 +395,19 @@ feature tests. A rule listed here fails the build; a rule listed under
   line. A reason is required, and the test fails without one.
 - Both have self-tests that prove each rule still fires on a deliberate
   violation. If you add a rule, add its fixture or snippet in the same change.
+- **Every escape is on a ledger.** The architecture test collects each
+  `arch-allow(...)` and `biome-ignore lint/plugin` in the repository and compares
+  them with `apps/web/src/__arch__/escapes.json` (file, rule, reason, count).
+  Adding or removing an escape without updating that file fails the test.
+  **Changing `escapes.json` is a change a human must review**: an agent may
+  propose an escape and say why, but must not treat a green build as approval.
+  (`UPDATE_ESCAPES=1 pnpm --filter @repo/web exec vitest run src/__arch__`
+  rewrites the file; read the diff before committing it.) A ledger entry whose
+  file no longer exists is ignored, which is how `project:init` can delete the
+  example feature with its escapes.
+- A guardrails gate in CI fails a pull request that changes this file, the rule
+  tests, the Biome config or plugins, `.claude/`, the lefthook config or the
+  workflows unless it carries the `guardrails-change` label.
 
 | Rule | Caught by |
 | --- | --- |

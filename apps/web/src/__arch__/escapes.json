@@ -1,0 +1,26 @@
+[
+  {
+    "file": "apps/web/src/app/[locale]/providers.tsx",
+    "rule": "web-localized-navigation",
+    "reason": "next-intl's useRouter reads usePathname(), which is request data; above every Suspense boundary it would stop routes prerendering (see the comment below)",
+    "count": 1
+  },
+  {
+    "file": "apps/web/src/features/auth/actions.ts",
+    "rule": "public-action",
+    "reason": "runs before any session exists; the auth endpoint itself rate-limits and checks the origin",
+    "count": 6
+  },
+  {
+    "file": "apps/web/src/features/payments/actions.ts",
+    "rule": "web-localized-navigation",
+    "reason": "redirects to Stripe's hosted page, an external URL that next-intl's redirect would prefix with a locale",
+    "count": 1
+  },
+  {
+    "file": "apps/web/src/features/projects/components/project-mutations.tsx",
+    "rule": "web-localized-navigation",
+    "reason": "only calls router.refresh(); next-intl's useRouter reads usePathname(), request data that must not be read above Suspense",
+    "count": 1
+  }
+]

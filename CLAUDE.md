@@ -11,4 +11,5 @@
 - `/new-feature <description>` (`.claude/commands/new-feature.md`) is the required
   workflow for a new feature, including its cross-user scoping test.
 - A hook runs `biome check` on every file you edit (`.claude/settings.json`); fix
-  what it reports rather than working around it.
+  what it reports rather than working around it. It only sees Edit/Write; a file
+  created through the shell is checked first by `pnpm check`, so run it.

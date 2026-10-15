@@ -8,5 +8,7 @@
   say so and ask; do not rewrite it.
 - Nested `AGENTS.md` files take precedence in their folder, and each has a
   `CLAUDE.md` next to it that imports it.
-- Custom commands live in `.claude/commands/`, shared hooks in
-  `.claude/settings.json`.
+- `/new-feature <description>` (`.claude/commands/new-feature.md`) is the required
+  workflow for a new feature, including its cross-user scoping test.
+- A hook runs `biome check` on every file you edit (`.claude/settings.json`); fix
+  what it reports rather than working around it.
